@@ -224,8 +224,21 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 .badge-stage-scheduled{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
 .badge-stage-done{background:var(--accent-soft);color:var(--accent);border:1px solid var(--border-light)}
 .badge-overdue{background:var(--pa-bg);color:var(--pa);border:1px solid var(--pa-border);font-weight:800}
-.followup-actions{display:flex;gap:8px;margin-top:14px}
+.followup-actions{display:flex;gap:8px;margin-top:12px}
 .followup-actions .btn{flex:1}
+.followup-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.followup-column{flex:0 0 260px;scroll-snap-align:start;background:var(--surface);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);display:flex;flex-direction:column;gap:12px}
+.followup-column-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--border-light)}
+.followup-column-title{font-size:15px;font-weight:700}
+.followup-column-count{font-size:11px;font-weight:700;color:var(--text-3);background:var(--surface-alt);padding:3px 9px;border-radius:10px}
+.followup-mini-card{background:var(--surface-alt);border-radius:var(--r);padding:12px;border:1px solid var(--border-light)}
+.followup-mini-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.followup-mini-photo{width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--surface);display:grid;place-items:center;border:1px solid var(--border-light)}
+.followup-mini-photo img{width:100%;height:100%;object-fit:cover}
+.followup-mini-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.followup-mini-company{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.followup-column-empty{text-align:center;padding:20px 8px;color:var(--text-3);font-size:12px}
+@media(max-width:600px){.followup-column{flex:0 0 80vw}}
 .lead-card-notes{font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .lead-card-date{font-size:11px;color:var(--text-3);margin-top:8px;font-variant-numeric:tabular-nums}
 
@@ -480,6 +493,14 @@ function seedSample(){
     {name:'山田健太',company:'デジタルクラウド株式会社',department:'開発部',position:'エンジニア',email:'yamada@digi-cloud.jp',phone:'03-5678-9012',industry:'情報通信/IT',team:'宇井',priority:'C',notes:'技術的な情報収集目的。',unansweredQ:'',date:'2026-07-30',followupStatus:'完了',followed:true,contactMethod:'電話',contactedDate:'2026-07-31',meetingType:'対面',meetingDate:'2026-08-01'},
     {name:'中村洋平',company:'東京建設工業',department:'経営企画室',position:'室長',email:'nakamura@tokyo-kensetsu.jp',phone:'03-6789-0123',industry:'不動産/建設',team:'菅野',priority:'B',notes:'現場のDX化に関心。',unansweredQ:'建設現場での通信環境が悪い場合のオフライン対応',date:'2026-07-30',followupStatus:'未着手'},
     {name:'小林真理',company:'ファイナンスグループ',department:'人事部',position:'次長',email:'kobayashi@fin-group.co.jp',phone:'03-7890-1234',industry:'金融/保険',team:'木下',priority:'A',notes:'新入社員研修へのAI活用。予算確保済みとのこと。',unansweredQ:'',date:'2026-07-30',followupStatus:'連絡済み',contactMethod:'電話',contactedDate:'2026-07-31'},
+    {name:'渡辺健一',company:'合同会社ネクストギア',department:'技術部',position:'マネージャー',email:'watanabe@nextgear.jp',phone:'03-8901-2345',industry:'情報通信/IT',team:'菅野',priority:'C',notes:'情報収集段階。次回展示会にも来場予定とのこと。',unansweredQ:'',date:'2026-07-30',followupStatus:'未着手'},
+    {name:'伊藤久美子',company:'東西物流株式会社',department:'物流企画部',position:'課長',email:'ito@tozai-butsuryu.co.jp',phone:'06-2345-6789',industry:'小売/流通',team:'木下',priority:'C',notes:'倉庫管理システムとの連携に興味。',unansweredQ:'',date:'2026-07-29',followupStatus:'日程確定',contactMethod:'メール',contactedDate:'2026-07-30',meetingType:'ZOOM',meetingDate:'2026-08-06'},
+    {name:'加藤誠',company:'加藤精密工業株式会社',department:'製造部',position:'部長',email:'kato@kato-seimitsu.co.jp',phone:'052-345-6789',industry:'製造/素材',team:'プロイ',priority:'B',notes:'工場の検品工程へのAI活用を検討中。',unansweredQ:'導入までの標準的な期間はどれくらいか',date:'2026-07-30',followupStatus:'未着手'},
+    {name:'松本さゆり',company:'さゆり広告社',department:'企画制作部',position:'ディレクター',email:'matsumoto@sayuri-ad.co.jp',phone:'03-9012-3456',industry:'広告/メディア',team:'プロイ',priority:'C',notes:'クリエイティブ制作の効率化に関心。',unansweredQ:'',date:'2026-07-28',followupStatus:'連絡済み',contactMethod:'電話',contactedDate:'2026-07-29'},
+    {name:'井上直樹',company:'井上不動産株式会社',department:'営業企画部',position:'部長',email:'inoue@inoue-fudosan.jp',phone:'03-0123-4567',industry:'不動産/建設',team:'松尾',priority:'A',notes:'物件管理業務の自動化に強い関心。予算あり。',unansweredQ:'既存の基幹システムとの連携可否',date:'2026-07-28',followupStatus:'未着手'},
+    {name:'木村あゆみ',company:'あゆみ教育研究所',department:'研究開発部',position:'主任研究員',email:'kimura@ayumi-edu.jp',phone:'03-1122-3344',industry:'教育/研究',team:'松尾',priority:'C',notes:'教材開発への活用を検討。',unansweredQ:'',date:'2026-07-29',followupStatus:'完了',followed:true,contactMethod:'メール',contactedDate:'2026-07-30',meetingType:'対面',meetingDate:'2026-08-02'},
+    {name:'林大輔',company:'大輔コンサルティング',department:'経営戦略室',position:'シニアコンサルタント',email:'hayashi@daisuke-consul.jp',phone:'03-2233-4455',industry:'コンサル',team:'宇井',priority:'B',notes:'クライアント企業への提案に活用したいとのこと。',unansweredQ:'',date:'2026-07-30',followupStatus:'連絡済み',contactMethod:'メール',contactedDate:'2026-07-31'},
+    {name:'清水由紀',company:'清水金融株式会社',department:'デジタル戦略部',position:'次長',email:'shimizu@shimizu-kinyu.co.jp',phone:'03-3344-5566',industry:'金融/保険',team:'宇井',priority:'A',notes:'コールセンター業務の効率化に強い関心。役員決裁待ち。',unansweredQ:'セキュリティ認証の取得状況について',date:'2026-07-28',followupStatus:'日程確定',contactMethod:'電話',contactedDate:'2026-07-29',meetingType:'対面',meetingDate:'2026-08-04'},
   ];
   state.leads=s.map(l=>({id:uid(),address:'',nextAction:'',followed:false,photo:null,unansweredQ:'',followupStatus:'未着手',contactMethod:'',contactedDate:'',meetingType:'',meetingDate:'',...l}));
 }
@@ -756,6 +777,18 @@ function followupActionHtml(l){
   return '';
 }
 
+function sortByFollowupPriority(arr){
+  const order={'未着手':0,'連絡済み':1,'日程確定':2,'完了':3};
+  return[...arr].sort((a,b)=>{
+    const oa=order[a.followupStatus]??0,ob=order[b.followupStatus]??0;
+    if(oa!==ob)return oa-ob;
+    if(a.followupStatus==='未着手')return daysSince(b.date)-daysSince(a.date);
+    if(a.followupStatus==='連絡済み')return new Date(a.contactedDate||a.date)-new Date(b.contactedDate||b.date);
+    if(a.followupStatus==='日程確定')return new Date(a.meetingDate||'9999-12-31')-new Date(b.meetingDate||'9999-12-31');
+    return new Date(b.meetingDate||b.date)-new Date(a.meetingDate||a.date);
+  });
+}
+
 function renderFollowup(){
   const el=document.getElementById('sec-followup');
   const leads=state.leads;
@@ -765,11 +798,7 @@ function renderFollowup(){
   const done=leads.filter(l=>l.followupStatus==='完了');
   const overdue=todo.filter(l=>daysSince(l.date)>7).length;
 
-  const sortedTodo=[...todo].sort((a,b)=>daysSince(b.date)-daysSince(a.date));
-  const sortedContacted=[...contacted].sort((a,b)=>new Date(a.contactedDate||a.date)-new Date(b.contactedDate||b.date));
-  const sortedScheduled=[...scheduled].sort((a,b)=>new Date(a.meetingDate||'9999-12-31')-new Date(b.meetingDate||'9999-12-31'));
-  const sortedDone=[...done].sort((a,b)=>new Date(b.meetingDate||b.date)-new Date(a.meetingDate||a.date));
-  const ordered=[...sortedTodo,...sortedContacted,...sortedScheduled,...sortedDone];
+  const board=TEAM.map(t=>({team:t,leads:sortByFollowupPriority(leads.filter(l=>l.team===t))}));
 
   el.innerHTML=`
     <div class="kpi-row">
@@ -778,20 +807,33 @@ function renderFollowup(){
       <div class="kpi-card"><div class="kpi-label">日程確定</div><div class="kpi-value" style="color:var(--purple)">${scheduled.length}</div><div class="kpi-sub">面談予定</div></div>
       <div class="kpi-card"><div class="kpi-label">完了</div><div class="kpi-value" style="color:var(--accent)">${done.length}</div><div class="kpi-sub">商談実施済み</div></div>
     </div>
-    ${ordered.length?`<div class="lead-grid">${ordered.map(l=>`
-      <div class="lead-card">
-        <div class="lead-card-top">
-          <div class="lead-card-photo">${photoOrIcon(l)}</div>
-          <div><div class="lead-card-name">${esc(l.team)} 担当</div><div class="lead-card-company">重要度 ${l.priority}・${l.date} 登録</div></div>
-          <div class="priority-badge --${l.priority.toLowerCase()}" style="margin-left:auto">${l.priority}</div>
+    <div class="followup-board">
+      ${board.map(col=>`
+        <div class="followup-column">
+          <div class="followup-column-header">
+            <div class="followup-column-title">${esc(col.team)}</div>
+            <div class="followup-column-count">${col.leads.length}件</div>
+          </div>
+          ${col.leads.length?col.leads.map(l=>`
+            <div class="followup-mini-card">
+              <div class="followup-mini-top">
+                <div class="followup-mini-photo">${photoOrIcon(l)}</div>
+                <div style="flex:1;min-width:0">
+                  <div class="followup-mini-name">${esc(l.name||'氏名未入力')}</div>
+                  <div class="followup-mini-company">${esc(l.company||l.date)}</div>
+                </div>
+                <div class="priority-badge --${l.priority.toLowerCase()}">${l.priority}</div>
+              </div>
+              <div class="lead-card-badges">${stageBadgeHtml(l)}</div>
+              <div class="followup-actions">
+                ${followupActionHtml(l)}
+                <button class="btn btn-outline btn-sm" data-action="view" data-id="${l.id}">詳細</button>
+              </div>
+            </div>
+          `).join(''):'<div class="followup-column-empty">担当リードなし</div>'}
         </div>
-        <div class="lead-card-badges">${stageBadgeHtml(l)}</div>
-        ${l.notes?`<div class="lead-card-notes">${esc(l.notes)}</div>`:''}
-        <div class="followup-actions">
-          ${followupActionHtml(l)}
-          <button class="btn btn-outline btn-sm" data-action="view" data-id="${l.id}">詳細</button>
-        </div>
-      </div>`).join('')}</div>`:'<div class="empty-state"><p>リードがありません</p></div>'}
+      `).join('')}
+    </div>
   `;
 }
 
