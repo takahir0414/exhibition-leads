@@ -246,8 +246,8 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 .empty-state p{font-size:15px;margin-bottom:8px}
 .empty-state small{font-size:13px}
 
-.toast{position:fixed;left:50%;z-index:300;transform:translateX(-50%) translateY(80px);background:var(--primary);color:var(--primary-fg);padding:14px 24px;border-radius:var(--r);font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);transition:transform .3s ease;white-space:nowrap}
-.toast.show{transform:translateX(-50%) translateY(0)}
+.toast{position:fixed;left:50%;bottom:24px;z-index:300;transform:translateX(-50%) translateY(80px);background:var(--primary);color:var(--primary-fg);padding:14px 24px;border-radius:var(--r);font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);transition:transform .3s ease,opacity .3s ease;white-space:nowrap;opacity:0;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
 /* ===== RESPONSIVE: TABLET ===== */
 @media(max-width:900px){
