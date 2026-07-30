@@ -158,6 +158,11 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 .upload-preview{position:relative;margin-bottom:20px;border-radius:var(--r-lg);overflow:hidden;background:var(--surface-alt)}
 .upload-preview img{width:100%;max-height:240px;object-fit:contain;display:block}
 .upload-preview .remove-photo{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;font-size:20px;-webkit-tap-highlight-color:transparent}
+.ocr-status{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--info-bg);border:1px solid var(--info-border);border-radius:var(--r);color:var(--info);font-size:13px;font-weight:600;margin-bottom:20px}
+.ocr-spinner{width:16px;height:16px;border:2px solid var(--info-border);border-top-color:var(--info);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ocr-error{background:var(--pa-bg);border-color:var(--pa-border);color:var(--pa)}
+.ocr-result-hint{font-size:12px;color:var(--text-3);margin:-8px 0 4px}
 
 /* ===== FORM ===== */
 .form-card{background:var(--surface);border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);max-width:720px;margin:0 auto}
@@ -373,6 +378,7 @@ main{padding:24px;max-width:1200px;margin:0 auto}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script>
 const TEAM = ['菅野','木下','プロイ','松尾','宇井'];
 const INDUSTRIES = ['製造/素材','情報通信/IT','サービス/人材','金融/保険','不動産/建設','小売/流通','医療/福祉','教育/研究','広告/メディア','コンサル','その他'];
@@ -394,6 +400,61 @@ function classifyIndustry(c){
   for(const[ind,keys]of Object.entries(IND_KEYS)){if(keys.some(k=>c.includes(k)))return ind}
   return 'その他';
 }
+
+function parseCardText(text){
+  const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const emailMatch=text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  const phoneMatch=text.match(/0\d{1,4}[-‐−]\d{1,4}[-‐−]\d{3,4}/)||text.match(/0\d{9,10}/);
+  const companyLine=lines.find(l=>/(株式会社|有限会社|合同会社|㈱|㈲|Co\.,?\s*Ltd|Inc\.|Corporation)/i.test(l))||'';
+  const company=companyLine.replace(/^[■●・\s]+/,'').trim();
+  const nameCandidate=lines.find(l=>l!==companyLine&&/^[一-鿿぀-ゟ゠-ヿ\s]{2,8}$/.test(l)&&!/(部|課|係|室|株式会社|有限会社|合同会社)/.test(l))||'';
+  return{
+    company,
+    name:nameCandidate,
+    phone:phoneMatch?phoneMatch[0]:'',
+    email:emailMatch?emailMatch[0]:'',
+    industry:company?classifyIndustry(company):''
+  };
+}
+
+function captureRegFormState(){
+  return{
+    notes:document.getElementById('regNotes')?.value??'',
+    unansweredQ:document.getElementById('regUnansweredQ')?.value??'',
+    team:document.querySelector('#sec-register input[name="regTeam"]:checked')?.value??'',
+    priority:document.querySelector('#sec-register input[name="regPriority"]:checked')?.value??''
+  };
+}
+function restoreRegFormState(s){
+  if(!s)return;
+  const notesEl=document.getElementById('regNotes');if(notesEl)notesEl.value=s.notes;
+  const uqEl=document.getElementById('regUnansweredQ');if(uqEl)uqEl.value=s.unansweredQ;
+  if(s.team){
+    const teamInput=document.querySelector(`#sec-register input[name="regTeam"][value="${s.team}"]`);
+    if(teamInput){teamInput.checked=true;teamInput.closest('.team-option').classList.add('selected')}
+  }
+  if(s.priority){
+    const prioInput=document.querySelector(`#sec-register input[name="regPriority"][value="${s.priority}"]`);
+    if(prioInput){prioInput.checked=true;prioInput.closest('.prio-option').classList.add('selected')}
+  }
+}
+
+async function runOcr(photoDataUrl){
+  let saved=captureRegFormState();
+  state.regOcrStatus='running';
+  renderRegister();
+  restoreRegFormState(saved);
+  try{
+    const{data}=await Tesseract.recognize(photoDataUrl,'jpn+eng');
+    state.regExtracted=parseCardText(data.text||'');
+    state.regOcrStatus='done';
+  }catch(e){
+    state.regOcrStatus='error';
+  }
+  saved=captureRegFormState();
+  renderRegister();
+  restoreRegFormState(saved);
+}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function today(){return new Date().toISOString().slice(0,10)}
 function isMobile(){return window.innerWidth<=600}
@@ -401,7 +462,7 @@ function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function daysSince(dateStr){return Math.floor((new Date(today())-new Date(dateStr))/86400000)}
 function photoOrIcon(l){return l.photo?`<img src="${l.photo}" alt="">`:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'}
 
-const state={tab:'dashboard',leads:[],filters:{q:'',team:'',priority:'',industry:''},regPhoto:null};
+const state={tab:'dashboard',leads:[],filters:{q:'',team:'',priority:'',industry:''},regPhoto:null,regOcrStatus:'idle',regExtracted:{company:'',name:'',phone:'',email:'',industry:''}};
 
 function save(){localStorage.setItem('exh-leads',JSON.stringify(state.leads))}
 function load(){
@@ -539,6 +600,27 @@ function renderRegister(){
           </div>
         `}
       </div>
+      ${state.regPhoto&&state.regOcrStatus==='running'?`
+        <div class="ocr-status"><div class="ocr-spinner"></div>名刺を読み取り中...</div>
+      `:''}
+      ${state.regPhoto&&state.regOcrStatus==='error'?`
+        <div class="ocr-status ocr-error">読み取りに失敗しました。下の項目に手入力してください。</div>
+      `:''}
+      ${state.regPhoto&&(state.regOcrStatus==='done'||state.regOcrStatus==='error')?`
+        <div class="form-grid" style="margin-bottom:20px">
+          <div class="ocr-result-hint form-group full">自動読み取り結果（内容を確認・修正してください）</div>
+          <div class="form-group"><label class="form-label">会社名</label><input id="regCompany" placeholder="株式会社◯◯" value="${esc(state.regExtracted.company)}"></div>
+          <div class="form-group"><label class="form-label">氏名</label><input id="regName" placeholder="山田 太郎" value="${esc(state.regExtracted.name)}"></div>
+          <div class="form-group"><label class="form-label">電話</label><input id="regPhone" type="tel" placeholder="03-0000-0000" value="${esc(state.regExtracted.phone)}"></div>
+          <div class="form-group"><label class="form-label">メール</label><input id="regEmail" type="email" placeholder="name@example.com" value="${esc(state.regExtracted.email)}"></div>
+          <div class="form-group full"><label class="form-label">業種（自動判定・変更可）</label>
+            <select id="regIndustry">
+              <option value="">未設定</option>
+              ${INDUSTRIES.map(i=>`<option value="${i}"${state.regExtracted.industry===i?' selected':''}>${i}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      `:''}
       <div class="form-grid">
         <div class="form-group full">
           <label class="form-label">担当者<span class="required">*</span></label>
@@ -569,7 +651,10 @@ function setupRegisterEvents(){
     if(inp) inp.addEventListener('change',async e=>{
       const f=e.target.files[0];if(!f)return;
       state.regPhoto=await resizeImg(f);
+      state.regExtracted={company:'',name:'',phone:'',email:'',industry:''};
+      state.regOcrStatus='idle';
       renderRegister();
+      runOcr(state.regPhoto);
     });
   });
   document.querySelectorAll('#sec-register .team-option').forEach(el=>{
@@ -591,9 +676,15 @@ function saveLead(){
   const prioEl=document.querySelector('#sec-register input[name="regPriority"]:checked');
   if(!teamEl){toast('担当者を選択してください');return}
   if(!prioEl){toast('重要度を選択してください');return}
+  const company=document.getElementById('regCompany')?.value.trim()||'';
+  const industry=document.getElementById('regIndustry')?.value||(company?classifyIndustry(company):'その他');
   const lead={
-    id:uid(),name:'',company:'',department:'',position:'',
-    email:'',phone:'',address:'',industry:'その他',
+    id:uid(),
+    name:document.getElementById('regName')?.value.trim()||'',
+    company,department:'',position:'',
+    email:document.getElementById('regEmail')?.value.trim()||'',
+    phone:document.getElementById('regPhone')?.value.trim()||'',
+    address:'',industry,
     team:teamEl.value,priority:prioEl.value,
     notes:document.getElementById('regNotes')?.value.trim()||'',
     unansweredQ:document.getElementById('regUnansweredQ')?.value.trim()||'',
@@ -602,6 +693,8 @@ function saveLead(){
   };
   state.leads.unshift(lead);save();
   state.regPhoto=null;
+  state.regExtracted={company:'',name:'',phone:'',email:'',industry:''};
+  state.regOcrStatus='idle';
   toast('登録しました');
   renderRegister();
 }
@@ -832,8 +925,8 @@ document.addEventListener('click',e=>{
   const id=btn.dataset.id;
   if(action==='view'){const l=state.leads.find(x=>x.id===id);if(l)showModal(l)}
   else if(action==='closeModal')closeModal();
-  else if(action==='removePhoto'){state.regPhoto=null;renderRegister()}
-  else if(action==='clearForm'){state.regPhoto=null;renderRegister()}
+  else if(action==='removePhoto'){state.regPhoto=null;state.regExtracted={company:'',name:'',phone:'',email:'',industry:''};state.regOcrStatus='idle';renderRegister()}
+  else if(action==='clearForm'){state.regPhoto=null;state.regExtracted={company:'',name:'',phone:'',email:'',industry:''};state.regOcrStatus='idle';renderRegister()}
   else if(action==='saveLead')saveLead();
   else if(action==='export')exportCSV();
   else if(action==='goRegister')switchTab('register');
