@@ -1,0 +1,798 @@
+<title>展示会リード管理</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+:root {
+  --bg: #EEF2F6;
+  --surface: #FFFFFF;
+  --surface-alt: #F8FAFB;
+  --border: #DAE0E8;
+  --border-light: #EDF0F4;
+  --text: #111827;
+  --text-2: #4B5563;
+  --text-3: #9CA3AF;
+  --primary: #0D3D30;
+  --primary-fg: #FFFFFF;
+  --accent: #059669;
+  --accent-soft: #ECFDF5;
+  --accent-hover: #047857;
+  --pa: #DC2626; --pa-bg: #FEF2F2; --pa-border: #FECACA;
+  --pb: #D97706; --pb-bg: #FFFBEB; --pb-border: #FDE68A;
+  --pc: #6B7280; --pc-bg: #F3F4F6; --pc-border: #E5E7EB;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.1);
+  --r: 10px;
+  --r-lg: 14px;
+  --font: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,-apple-system,sans-serif;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#0C1322;--surface:#1A2435;--surface-alt:#1F2B3D;--border:#2D3B4F;--border-light:#253245;
+  --text:#E8ECF1;--text-2:#94A3B8;--text-3:#64748B;
+  --primary:#34D399;--primary-fg:#0C1322;
+  --accent:#34D399;--accent-soft:#064E3B;--accent-hover:#6EE7B7;
+  --pa:#EF4444;--pa-bg:#450A0A;--pa-border:#7F1D1D;
+  --pb:#F59E0B;--pb-bg:#451A03;--pb-border:#78350F;
+  --pc:#9CA3AF;--pc-bg:#1F2937;--pc-border:#374151;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.2);--shadow:0 1px 3px rgba(0,0,0,.3);--shadow-lg:0 4px 16px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --bg:#0C1322;--surface:#1A2435;--surface-alt:#1F2B3D;--border:#2D3B4F;--border-light:#253245;
+  --text:#E8ECF1;--text-2:#94A3B8;--text-3:#64748B;
+  --primary:#34D399;--primary-fg:#0C1322;
+  --accent:#34D399;--accent-soft:#064E3B;--accent-hover:#6EE7B7;
+  --pa:#EF4444;--pa-bg:#450A0A;--pa-border:#7F1D1D;
+  --pb:#F59E0B;--pb-bg:#451A03;--pb-border:#78350F;
+  --pc:#9CA3AF;--pc-bg:#1F2937;--pc-border:#374151;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.2);--shadow:0 1px 3px rgba(0,0,0,.3);--shadow-lg:0 4px 16px rgba(0,0,0,.4);
+}
+:root[data-theme="light"]{
+  --bg:#EEF2F6;--surface:#FFFFFF;--surface-alt:#F8FAFB;--border:#DAE0E8;--border-light:#EDF0F4;
+  --text:#111827;--text-2:#4B5563;--text-3:#9CA3AF;
+  --primary:#0D3D30;--primary-fg:#FFFFFF;
+  --accent:#059669;--accent-soft:#ECFDF5;--accent-hover:#047857;
+  --pa:#DC2626;--pa-bg:#FEF2F2;--pa-border:#FECACA;
+  --pb:#D97706;--pb-bg:#FFFBEB;--pb-border:#FDE68A;
+  --pc:#6B7280;--pc-bg:#F3F4F6;--pc-border:#E5E7EB;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.05);--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);--shadow-lg:0 4px 16px rgba(0,0,0,.1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font:inherit;color:var(--text);background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;width:100%;transition:border-color .2s;font-size:16px}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical;min-height:80px}
+
+/* ===== HEADER ===== */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.app-title{font-size:17px;font-weight:700;letter-spacing:-.02em}
+.app-title span{color:var(--accent);margin-right:8px}
+.theme-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;transition:background .2s;-webkit-tap-highlight-color:transparent}
+.theme-btn:hover{background:var(--surface-alt)}
+.theme-btn svg{width:18px;height:18px;stroke:var(--text-2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===== TOP TAB NAV (desktop) ===== */
+.tab-nav-top{display:flex;gap:2px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab-nav-top::-webkit-scrollbar{display:none}
+.tab-btn-top{padding:14px 20px;font-size:14px;font-weight:500;color:var(--text-3);white-space:nowrap;position:relative;transition:color .2s;-webkit-tap-highlight-color:transparent}
+.tab-btn-top::after{content:'';position:absolute;bottom:0;left:16px;right:16px;height:2.5px;border-radius:2px 2px 0 0;background:transparent;transition:background .2s}
+.tab-btn-top.active{color:var(--accent)}
+.tab-btn-top.active::after{background:var(--accent)}
+.tab-btn-top:hover{color:var(--text)}
+
+/* ===== BOTTOM NAV (mobile) ===== */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:100;padding-bottom:var(--safe-b)}
+.bottom-nav-inner{display:flex;height:56px}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--text-3);font-size:10px;font-weight:600;-webkit-tap-highlight-color:transparent;transition:color .2s;position:relative}
+.bnav-btn.active{color:var(--accent)}
+.bnav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bnav-center{position:relative;flex:1.2}
+.bnav-center-btn{position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(5,150,105,.4);-webkit-tap-highlight-color:transparent;transition:transform .15s}
+.bnav-center-btn:active{transform:translateX(-50%) scale(.92)}
+.bnav-center-btn svg{width:28px;height:28px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.bnav-center-label{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:600;color:var(--accent);white-space:nowrap}
+
+/* ===== FAB (desktop only) ===== */
+.fab{position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(5,150,105,.35);z-index:90;transition:transform .15s}
+.fab:hover{transform:scale(1.08)}
+.fab:active{transform:scale(.95)}
+.fab svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===== MAIN ===== */
+main{padding:24px;max-width:1200px;margin:0 auto}
+.section{display:none}
+.section.active{display:block}
+
+/* ===== KPI ===== */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border-radius:var(--r-lg);padding:20px 24px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light)}
+.kpi-label{font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.kpi-value{font-size:36px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi-sub{font-size:12px;color:var(--text-3);margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi-card.--a .kpi-value{color:var(--pa)}
+.kpi-card.--b .kpi-value{color:var(--pb)}
+.kpi-card.--c .kpi-value{color:var(--pc)}
+
+/* ===== DASHBOARD ===== */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.dash-card{background:var(--surface);border-radius:var(--r-lg);padding:24px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light)}
+.dash-card h3{font-size:14px;font-weight:700;margin-bottom:16px;letter-spacing:-.01em}
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;font-size:13px}
+.bar-label{width:100px;flex-shrink:0;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:22px;background:var(--surface-alt);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .6s ease;min-width:2px}
+.bar-pct{width:40px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-3);font-size:12px;font-weight:600}
+
+.priority-list{list-style:none}
+.priority-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light);-webkit-tap-highlight-color:transparent}
+.priority-item:last-child{border-bottom:none}
+.priority-badge{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;font-size:13px;font-weight:800;flex-shrink:0}
+.priority-badge.--a{background:var(--pa-bg);color:var(--pa);border:1px solid var(--pa-border)}
+.priority-badge.--b{background:var(--pb-bg);color:var(--pb);border:1px solid var(--pb-border)}
+.priority-badge.--c{background:var(--pc-bg);color:var(--pc);border:1px solid var(--pc-border)}
+.priority-info{flex:1;min-width:0}
+.priority-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.priority-company{font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.priority-team{font-size:11px;color:var(--accent);font-weight:600}
+
+/* ===== UPLOAD (mobile-optimized) ===== */
+.upload-area{margin-bottom:20px}
+.upload-btns{display:flex;gap:12px}
+.upload-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:28px 16px;border:2px dashed var(--border);border-radius:var(--r-lg);cursor:pointer;transition:border-color .2s,background .2s;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden}
+.upload-btn:active{background:var(--accent-soft);border-color:var(--accent)}
+.upload-btn svg{stroke:var(--accent)}
+.upload-btn span{font-size:13px;font-weight:600;color:var(--text-2)}
+.upload-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-preview{position:relative;margin-bottom:20px;border-radius:var(--r-lg);overflow:hidden;background:var(--surface-alt)}
+.upload-preview img{width:100%;max-height:240px;object-fit:contain;display:block}
+.upload-preview .remove-photo{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;font-size:20px;-webkit-tap-highlight-color:transparent}
+
+/* ===== FORM ===== */
+.form-card{background:var(--surface);border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);max-width:720px;margin:0 auto}
+.form-card h2{font-size:18px;font-weight:700;margin-bottom:20px;letter-spacing:-.02em}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:13px;font-weight:600;color:var(--text-2)}
+.form-label .required{color:var(--pa);margin-left:2px}
+
+.team-select{display:flex;gap:8px;flex-wrap:wrap}
+.team-option{padding:10px 18px;border-radius:24px;font-size:14px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);transition:all .15s;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center}
+.team-option:active{transform:scale(.96)}
+.team-option.selected{background:var(--accent);color:#fff;border-color:var(--accent)}
+.team-option input{display:none}
+
+.priority-select{display:flex;gap:10px}
+.prio-option{flex:1;padding:14px;border-radius:var(--r);font-size:17px;font-weight:800;text-align:center;border:2px solid var(--border);background:var(--surface);transition:all .15s;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:52px;display:flex;align-items:center;justify-content:center}
+.prio-option:active{transform:scale(.96)}
+.prio-option.--a.selected{background:var(--pa-bg);border-color:var(--pa);color:var(--pa)}
+.prio-option.--b.selected{background:var(--pb-bg);border-color:var(--pb);color:var(--pb)}
+.prio-option.--c.selected{background:var(--pc-bg);border-color:var(--pc);color:var(--pc)}
+.prio-option input{display:none}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border-radius:var(--r);font-size:15px;font-weight:600;transition:all .15s;-webkit-tap-highlight-color:transparent;min-height:48px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--primary);color:var(--primary-fg)}
+.btn-outline{border:1.5px solid var(--border);background:var(--surface)}
+.btn-danger{background:var(--pa);color:#fff}
+.btn-sm{padding:8px 16px;font-size:13px;min-height:38px}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
+
+/* ===== STICKY SUBMIT (mobile) ===== */
+.sticky-submit{display:none}
+
+/* ===== FILTER BAR ===== */
+.filter-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.filter-bar input[type="text"]{max-width:280px}
+.filter-bar select{max-width:160px;padding:10px 12px;font-size:14px}
+.export-btn{margin-left:auto}
+
+/* ===== LEAD GRID ===== */
+.lead-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.lead-card{background:var(--surface);border-radius:var(--r-lg);padding:20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.lead-card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.lead-card:active{transform:scale(.98)}
+.lead-card-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+.lead-card-photo{width:56px;height:56px;border-radius:var(--r);background:var(--surface-alt);overflow:hidden;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--border-light)}
+.lead-card-photo img{width:100%;height:100%;object-fit:cover}
+.lead-card-photo svg{stroke:var(--text-3)}
+.lead-card-name{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.lead-card-company{font-size:13px;color:var(--text-2);margin-top:2px}
+.lead-card-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.badge-industry{background:var(--accent-soft);color:var(--accent)}
+.badge-team{background:var(--surface-alt);color:var(--text-2);border:1px solid var(--border-light)}
+.lead-card-notes{font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lead-card-date{font-size:11px;color:var(--text-3);margin-top:8px;font-variant-numeric:tabular-nums}
+
+/* ===== MODAL ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:grid;place-items:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.visible{opacity:1;pointer-events:auto}
+.modal{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:600px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:var(--shadow-lg);padding:28px;transform:translateY(16px);transition:transform .25s}
+.modal-overlay.visible .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-header h2{font-size:18px;font-weight:700}
+.modal-close{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;transition:background .2s;font-size:22px;color:var(--text-3);-webkit-tap-highlight-color:transparent}
+.modal-close:hover,.modal-close:active{background:var(--surface-alt)}
+.modal-photo{width:100%;border-radius:var(--r);margin-bottom:20px;cursor:zoom-in}
+.modal-photo.zoomed{position:fixed;inset:0;z-index:300;border-radius:0;background:#000;object-fit:contain;cursor:zoom-out;margin:0;max-height:100vh}
+.detail-grid{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;font-size:14px}
+.detail-label{color:var(--text-3);font-weight:600;font-size:13px}
+.detail-value{color:var(--text)}
+.modal-actions{display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border-light);flex-wrap:wrap}
+
+/* ===== MISC ===== */
+.empty-state{text-align:center;padding:60px 24px;color:var(--text-3)}
+.empty-state svg{margin:0 auto 16px;display:block}
+.empty-state p{font-size:15px;margin-bottom:8px}
+.empty-state small{font-size:13px}
+
+.toast{position:fixed;left:50%;z-index:300;transform:translateX(-50%) translateY(80px);background:var(--primary);color:var(--primary-fg);padding:14px 24px;border-radius:var(--r);font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);transition:transform .3s ease;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ===== RESPONSIVE: TABLET ===== */
+@media(max-width:900px){
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .dash-grid{grid-template-columns:1fr}
+}
+
+/* ===== RESPONSIVE: MOBILE ===== */
+@media(max-width:600px){
+  .tab-nav-top{display:none}
+  .fab{display:none}
+  .bottom-nav{display:block}
+
+  main{padding:16px 16px 100px}
+  .app-header{padding:0 16px;height:52px}
+  .app-title{font-size:15px}
+
+  .form-card{padding:0;background:transparent;box-shadow:none;border:none}
+  .form-card h2{display:none}
+  .form-grid{grid-template-columns:1fr;gap:14px}
+
+  .upload-btn{padding:24px 12px}
+  .upload-btn svg{width:32px;height:32px}
+
+  .team-option{padding:10px 14px;font-size:13px}
+  .prio-option{padding:14px 8px;font-size:16px}
+
+  .kpi-row{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi-card{padding:16px}
+  .kpi-value{font-size:28px}
+  .kpi-label{font-size:11px}
+
+  .lead-grid{grid-template-columns:1fr}
+
+  .filter-bar{flex-direction:column;align-items:stretch;gap:10px}
+  .filter-bar input[type="text"],.filter-bar select{max-width:100%}
+  .export-btn{margin-left:0}
+
+  .modal{max-height:92vh;border-radius:var(--r-lg) var(--r-lg) 0 0;align-self:end;padding:24px 20px}
+  .modal-overlay{padding:0}
+
+  .sticky-submit{display:flex;position:fixed;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + var(--safe-b));background:var(--surface);border-top:1px solid var(--border);z-index:90;gap:12px}
+  .sticky-submit .btn{flex:1}
+
+  .form-actions{display:none}
+
+  .toast{bottom:auto;top:68px}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+
+  .bar-label{width:80px;font-size:12px}
+  .dash-card{padding:16px}
+}
+
+/* Desktop: show top nav, hide bottom nav */
+@media(min-width:601px){
+  .bottom-nav{display:none !important}
+  .fab{display:grid}
+}
+</style>
+
+<div id="app">
+  <header class="app-header">
+    <div class="app-title"><span>&#9670;</span>展示会リード管理</div>
+    <button class="theme-btn" id="themeToggle" aria-label="テーマ切替">
+      <svg viewBox="0 0 24 24" id="themeIcon"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </header>
+
+  <!-- Desktop top nav -->
+  <nav class="tab-nav-top">
+    <button class="tab-btn-top active" data-tab="dashboard">ダッシュボード</button>
+    <button class="tab-btn-top" data-tab="register">名刺登録</button>
+    <button class="tab-btn-top" data-tab="leads">リード一覧</button>
+  </nav>
+
+  <main>
+    <section id="sec-dashboard" class="section active"></section>
+    <section id="sec-register" class="section"></section>
+    <section id="sec-leads" class="section"></section>
+  </main>
+
+  <!-- Desktop FAB -->
+  <button class="fab" data-action="goRegister" aria-label="名刺登録">
+    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+  </button>
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="bnav-btn active" data-tab="dashboard">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>ホーム</span>
+      </button>
+      <div class="bnav-center">
+        <button class="bnav-center-btn" data-tab="register">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <span class="bnav-center-label">名刺登録</span>
+      </div>
+      <button class="bnav-btn" data-tab="leads">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <span>リード</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <!-- Mobile sticky submit (shown only on register tab) -->
+  <div class="sticky-submit" id="stickySubmit" style="display:none">
+    <button class="btn btn-outline" data-action="clearForm">クリア</button>
+    <button class="btn btn-primary" data-action="saveLead">登録する</button>
+  </div>
+</div>
+
+<script>
+const TEAM = ['菅野','木下','プロイ','松尾','宇井'];
+const INDUSTRIES = ['製造/素材','情報通信/IT','サービス/人材','金融/保険','不動産/建設','小売/流通','医療/福祉','教育/研究','広告/メディア','コンサル','その他'];
+const IND_KEYS = {
+  '製造/素材':['製造','工業','機械','電機','素材','化学','金属','メーカー','鉄鋼','繊維','プラスチック','部品','精密'],
+  '情報通信/IT':['システム','ソフト','テック','IT','デジタル','クラウド','データ','AI','ネット','ウェブ','アプリ','セキュリティ','SaaS','DX','ソリューション','インフォ','コンピュータ'],
+  'サービス/人材':['サービス','人材','スタッフ','派遣','アウトソーシング','BPO','代行','清掃','警備'],
+  '金融/保険':['銀行','証券','保険','ファイナンス','リース','信託','投資','キャピタル','アセット'],
+  '不動産/建設':['不動産','建設','建築','住宅','土木','ハウス','開発','設計','工務'],
+  '小売/流通':['小売','流通','商事','貿易','卸','ストア','マート','EC','コマース','物流'],
+  '医療/福祉':['医療','病院','薬','ヘルスケア','福祉','介護','メディカル','バイオ','製薬','クリニック'],
+  '教育/研究':['教育','大学','学校','研究','アカデミー','学院','塾','スクール'],
+  '広告/メディア':['広告','メディア','マーケティング','PR','デザイン','クリエイティブ','出版','印刷','映像','放送','制作'],
+  'コンサル':['コンサル','アドバイザ','戦略','経営','総研','シンクタンク'],
+};
+
+function classifyIndustry(c){
+  if(!c)return 'その他';
+  for(const[ind,keys]of Object.entries(IND_KEYS)){if(keys.some(k=>c.includes(k)))return ind}
+  return 'その他';
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function today(){return new Date().toISOString().slice(0,10)}
+function isMobile(){return window.innerWidth<=600}
+function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+
+const state={tab:'dashboard',leads:[],filters:{q:'',team:'',priority:'',industry:''},regPhoto:null};
+
+function save(){localStorage.setItem('exh-leads',JSON.stringify(state.leads))}
+function load(){
+  const d=localStorage.getItem('exh-leads');
+  if(d){state.leads=JSON.parse(d)}else{seedSample();save()}
+}
+
+function seedSample(){
+  const s=[
+    {name:'田中太郎',company:'ABCメーカー株式会社',department:'DX推進部',position:'部長',email:'tanaka@abc-maker.co.jp',phone:'03-1234-5678',industry:'製造/素材',team:'菅野',priority:'A',notes:'AI導入に強い関心。来月の個別MTGを希望。',date:'2026-07-28'},
+    {name:'佐藤花子',company:'テックソリューションズ',department:'営業部',position:'課長',email:'sato@techsol.jp',phone:'03-2345-6789',industry:'情報通信/IT',team:'木下',priority:'B',notes:'既存のCRMからの乗り換えを検討中。',date:'2026-07-28'},
+    {name:'鈴木一郎',company:'グローバル人材サービス',department:'事業企画',position:'マネージャー',email:'suzuki@global-hr.co.jp',phone:'03-3456-7890',industry:'サービス/人材',team:'プロイ',priority:'A',notes:'研修プログラムの提案を求められた。資料送付予定。',date:'2026-07-29'},
+    {name:'高橋美咲',company:'メディカルイノベーション',department:'情報システム部',position:'主任',email:'takahashi@med-innov.co.jp',phone:'06-4567-8901',industry:'医療/福祉',team:'松尾',priority:'B',notes:'電子カルテ連携について質問あり。',date:'2026-07-29'},
+    {name:'山田健太',company:'デジタルクラウド株式会社',department:'開発部',position:'エンジニア',email:'yamada@digi-cloud.jp',phone:'03-5678-9012',industry:'情報通信/IT',team:'宇井',priority:'C',notes:'技術的な情報収集目的。',date:'2026-07-30'},
+    {name:'中村洋平',company:'東京建設工業',department:'経営企画室',position:'室長',email:'nakamura@tokyo-kensetsu.jp',phone:'03-6789-0123',industry:'不動産/建設',team:'菅野',priority:'B',notes:'現場のDX化に関心。',date:'2026-07-30'},
+    {name:'小林真理',company:'ファイナンスグループ',department:'人事部',position:'次長',email:'kobayashi@fin-group.co.jp',phone:'03-7890-1234',industry:'金融/保険',team:'木下',priority:'A',notes:'新入社員研修へのAI活用。予算確保済みとのこと。',date:'2026-07-30'},
+  ];
+  state.leads=s.map(l=>({id:uid(),address:'',nextAction:'',followed:false,photo:null,...l}));
+}
+
+function resizeImg(file){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      const MAX=600;
+      let w=img.width,h=img.height;
+      if(w>MAX){h=h*MAX/w;w=MAX}
+      c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',.7));
+      URL.revokeObjectURL(img.src);
+    };
+    img.src=URL.createObjectURL(file);
+  });
+}
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+function updateStickySubmit(){
+  const ss=document.getElementById('stickySubmit');
+  if(!ss)return;
+  ss.style.display=(state.tab==='register'&&isMobile())?'flex':'none';
+}
+
+function switchTab(tab){
+  state.tab=tab;
+  document.querySelectorAll('.tab-btn-top').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+tab));
+  render();
+  updateStickySubmit();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function render(){
+  if(state.tab==='dashboard')renderDash();
+  else if(state.tab==='register')renderRegister();
+  else if(state.tab==='leads')renderLeads();
+}
+
+function renderDash(){
+  const el=document.getElementById('sec-dashboard');
+  const leads=state.leads;
+  const a=leads.filter(l=>l.priority==='A').length;
+  const b=leads.filter(l=>l.priority==='B').length;
+  const c=leads.filter(l=>l.priority==='C').length;
+  const indCounts={};
+  leads.forEach(l=>{indCounts[l.industry]=(indCounts[l.industry]||0)+1});
+  const indSorted=Object.entries(indCounts).sort((x,y)=>y[1]-x[1]);
+  const indMax=indSorted.length?indSorted[0][1]:1;
+  const teamCounts={};
+  leads.forEach(l=>{teamCounts[l.team]=(teamCounts[l.team]||0)+1});
+  const teamSorted=Object.entries(teamCounts).sort((x,y)=>y[1]-x[1]);
+  const teamMax=teamSorted.length?teamSorted[0][1]:1;
+  const prioLeads=leads.filter(l=>l.priority==='A'&&!l.followed).slice(0,6);
+
+  el.innerHTML=`
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-label">総リード</div><div class="kpi-value">${leads.length}</div><div class="kpi-sub">登録済み</div></div>
+      <div class="kpi-card --a"><div class="kpi-label">重要度 A</div><div class="kpi-value">${a}</div><div class="kpi-sub">最優先</div></div>
+      <div class="kpi-card --b"><div class="kpi-label">重要度 B</div><div class="kpi-value">${b}</div><div class="kpi-sub">要フォロー</div></div>
+      <div class="kpi-card --c"><div class="kpi-label">重要度 C</div><div class="kpi-value">${c}</div><div class="kpi-sub">情報収集</div></div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3>業種分布</h3>
+        ${indSorted.map(([ind,cnt])=>`<div class="bar-row"><div class="bar-label">${ind}</div><div class="bar-track"><div class="bar-fill" style="width:${cnt/indMax*100}%"></div></div><div class="bar-pct">${cnt}</div></div>`).join('')||'<div class="empty-state"><p>データなし</p></div>'}
+      </div>
+      <div class="dash-card">
+        <h3>担当者別</h3>
+        ${teamSorted.map(([t,cnt])=>`<div class="bar-row"><div class="bar-label">${t}</div><div class="bar-track"><div class="bar-fill" style="width:${cnt/teamMax*100}%"></div></div><div class="bar-pct">${cnt}</div></div>`).join('')||'<div class="empty-state"><p>データなし</p></div>'}
+      </div>
+      <div class="dash-card" style="grid-column:1/-1">
+        <h3>フォロー優先 (A・未対応)</h3>
+        ${prioLeads.length?`<ul class="priority-list">${prioLeads.map(l=>`
+          <li class="priority-item" data-action="view" data-id="${l.id}">
+            <div class="priority-badge --a">A</div>
+            <div class="priority-info"><div class="priority-name">${esc(l.name)}</div><div class="priority-company">${esc(l.company)}</div></div>
+            <div class="priority-team">${esc(l.team)}</div>
+          </li>`).join('')}</ul>`:'<div class="empty-state"><p>全件フォロー済み</p></div>'}
+      </div>
+    </div>`;
+}
+
+function renderRegister(){
+  const el=document.getElementById('sec-register');
+  const camSvg='<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+  const galSvg='<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+
+  el.innerHTML=`
+    <div class="form-card">
+      <h2>名刺登録</h2>
+      <div class="upload-area">
+        ${state.regPhoto?`
+          <div class="upload-preview">
+            <img src="${state.regPhoto}" alt="名刺">
+            <button class="remove-photo" data-action="removePhoto">&times;</button>
+          </div>
+        `:`
+          <div class="upload-btns">
+            <label class="upload-btn" id="camBtn">
+              ${camSvg}<span>カメラで撮影</span>
+              <input type="file" accept="image/*" capture="environment" id="photoCam">
+            </label>
+            <label class="upload-btn" id="galBtn">
+              ${galSvg}<span>ファイルから選択</span>
+              <input type="file" accept="image/*" id="photoGal">
+            </label>
+          </div>
+        `}
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">氏名<span class="required">*</span></label><input id="regName" placeholder="山田 太郎" autocomplete="off"></div>
+        <div class="form-group"><label class="form-label">会社名<span class="required">*</span></label><input id="regCompany" placeholder="株式会社◯◯" autocomplete="off"></div>
+        <div class="form-group"><label class="form-label">部署</label><input id="regDept" placeholder="DX推進部"></div>
+        <div class="form-group"><label class="form-label">役職</label><input id="regPosition" placeholder="部長"></div>
+        <div class="form-group"><label class="form-label">メール</label><input id="regEmail" type="email" placeholder="name@example.com" inputmode="email"></div>
+        <div class="form-group"><label class="form-label">電話</label><input id="regPhone" type="tel" placeholder="03-0000-0000" inputmode="tel"></div>
+        <div class="form-group full"><label class="form-label">住所</label><input id="regAddress" placeholder="東京都◯◯区..."></div>
+        <div class="form-group full"><label class="form-label">業種</label>
+          <select id="regIndustry"><option value="">自動判定</option>${INDUSTRIES.map(i=>`<option value="${i}">${i}</option>`).join('')}</select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">担当者<span class="required">*</span></label>
+          <div class="team-select">${TEAM.map(t=>`<label class="team-option"><input type="radio" name="regTeam" value="${t}">${t}</label>`).join('')}</div>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">重要度<span class="required">*</span></label>
+          <div class="priority-select">
+            <label class="prio-option --a"><input type="radio" name="regPriority" value="A">A</label>
+            <label class="prio-option --b"><input type="radio" name="regPriority" value="B">B</label>
+            <label class="prio-option --c"><input type="radio" name="regPriority" value="C">C</label>
+          </div>
+        </div>
+        <div class="form-group full"><label class="form-label">備考</label><textarea id="regNotes" placeholder="AIの導入に関心あり。来月にデモを希望..."></textarea></div>
+        <div class="form-group full"><label class="form-label">次のアクション</label><input id="regAction" placeholder="資料送付 / デモ日程調整 / ..."></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-outline" data-action="clearForm">クリア</button>
+        <button class="btn btn-primary" data-action="saveLead">登録する</button>
+      </div>
+    </div>`;
+  setupRegisterEvents();
+}
+
+function setupRegisterEvents(){
+  ['photoCam','photoGal'].forEach(id=>{
+    const inp=document.getElementById(id);
+    if(inp) inp.addEventListener('change',async e=>{
+      const f=e.target.files[0];if(!f)return;
+      state.regPhoto=await resizeImg(f);
+      renderRegister();
+    });
+  });
+  const ci=document.getElementById('regCompany');
+  if(ci) ci.addEventListener('blur',()=>{
+    const sel=document.getElementById('regIndustry');
+    if(sel&&!sel.value){const g=classifyIndustry(ci.value);if(g!=='その他')sel.value=g}
+  });
+  document.querySelectorAll('#sec-register .team-option').forEach(el=>{
+    el.addEventListener('click',()=>{
+      document.querySelectorAll('#sec-register .team-option').forEach(o=>o.classList.remove('selected'));
+      el.classList.add('selected');el.querySelector('input').checked=true;
+    });
+  });
+  document.querySelectorAll('#sec-register .prio-option').forEach(el=>{
+    el.addEventListener('click',()=>{
+      document.querySelectorAll('#sec-register .prio-option').forEach(o=>o.classList.remove('selected'));
+      el.classList.add('selected');el.querySelector('input').checked=true;
+    });
+  });
+}
+
+function saveLead(){
+  const name=document.getElementById('regName')?.value.trim();
+  const company=document.getElementById('regCompany')?.value.trim();
+  const teamEl=document.querySelector('#sec-register input[name="regTeam"]:checked');
+  const prioEl=document.querySelector('#sec-register input[name="regPriority"]:checked');
+  if(!name||!company){toast('氏名と会社名は必須です');return}
+  if(!teamEl){toast('担当者を選択してください');return}
+  if(!prioEl){toast('重要度を選択してください');return}
+  const indSel=document.getElementById('regIndustry');
+  const industry=indSel?.value||classifyIndustry(company);
+  const lead={
+    id:uid(),name,company,
+    department:document.getElementById('regDept')?.value.trim()||'',
+    position:document.getElementById('regPosition')?.value.trim()||'',
+    email:document.getElementById('regEmail')?.value.trim()||'',
+    phone:document.getElementById('regPhone')?.value.trim()||'',
+    address:document.getElementById('regAddress')?.value.trim()||'',
+    industry,team:teamEl.value,priority:prioEl.value,
+    notes:document.getElementById('regNotes')?.value.trim()||'',
+    nextAction:document.getElementById('regAction')?.value.trim()||'',
+    followed:false,photo:state.regPhoto,date:today()
+  };
+  state.leads.unshift(lead);save();
+  state.regPhoto=null;
+  toast('登録しました');
+  renderRegister();
+}
+
+function renderLeads(){
+  const el=document.getElementById('sec-leads');
+  const f=state.filters;
+  let filtered=state.leads.filter(l=>{
+    if(f.q&&!`${l.name}${l.company}${l.notes}`.toLowerCase().includes(f.q.toLowerCase()))return false;
+    if(f.team&&l.team!==f.team)return false;
+    if(f.priority&&l.priority!==f.priority)return false;
+    if(f.industry&&l.industry!==f.industry)return false;
+    return true;
+  });
+  el.innerHTML=`
+    <div class="filter-bar">
+      <input type="text" placeholder="検索（氏名・会社名・備考）" value="${esc(f.q)}" data-filter="q">
+      <select data-filter="team"><option value="">担当者</option>${TEAM.map(t=>`<option${f.team===t?' selected':''}>${t}</option>`).join('')}</select>
+      <select data-filter="priority"><option value="">重要度</option><option${f.priority==='A'?' selected':''}>A</option><option${f.priority==='B'?' selected':''}>B</option><option${f.priority==='C'?' selected':''}>C</option></select>
+      <select data-filter="industry"><option value="">業種</option>${INDUSTRIES.map(i=>`<option${f.industry===i?' selected':''}>${i}</option>`).join('')}</select>
+      <button class="btn btn-outline btn-sm export-btn" data-action="export">CSV出力</button>
+    </div>
+    ${filtered.length?`
+      <div class="lead-grid">${filtered.map(l=>`
+        <div class="lead-card" data-action="view" data-id="${l.id}">
+          <div class="lead-card-top">
+            <div class="lead-card-photo">${l.photo?`<img src="${l.photo}" alt="">`:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'}</div>
+            <div><div class="lead-card-name">${esc(l.name)}</div><div class="lead-card-company">${esc(l.company)}${l.position?' / '+esc(l.position):''}</div></div>
+            <div class="priority-badge --${l.priority.toLowerCase()}" style="margin-left:auto">${l.priority}</div>
+          </div>
+          <div class="lead-card-badges"><span class="badge badge-industry">${esc(l.industry)}</span><span class="badge badge-team">${esc(l.team)}</span></div>
+          ${l.notes?`<div class="lead-card-notes">${esc(l.notes)}</div>`:''}
+          <div class="lead-card-date">${l.date}</div>
+        </div>`).join('')}</div>
+    `:`<div class="empty-state">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <p>リードが見つかりません</p><small>フィルタを変更するか、新しい名刺を登録してください</small>
+      </div>`}`;
+  el.querySelectorAll('[data-filter]').forEach(inp=>{
+    inp.addEventListener(inp.tagName==='INPUT'?'input':'change',e=>{
+      state.filters[e.target.dataset.filter]=e.target.value;renderLeads();
+    });
+  });
+}
+
+function showModal(lead,mode='view'){
+  const overlay=document.getElementById('modalOverlay');
+  const modal=document.getElementById('modal');
+  if(mode==='view'){
+    modal.innerHTML=`
+      <div class="modal-header"><h2>${esc(lead.name)}</h2><button class="modal-close" data-action="closeModal">&times;</button></div>
+      ${lead.photo?`<img class="modal-photo" src="${lead.photo}" alt="名刺" data-action="zoomPhoto">`:''}
+      <div class="detail-grid">
+        <div class="detail-label">会社名</div><div class="detail-value">${esc(lead.company)}</div>
+        ${lead.department?`<div class="detail-label">部署</div><div class="detail-value">${esc(lead.department)}</div>`:''}
+        ${lead.position?`<div class="detail-label">役職</div><div class="detail-value">${esc(lead.position)}</div>`:''}
+        ${lead.email?`<div class="detail-label">メール</div><div class="detail-value"><a href="mailto:${esc(lead.email)}" style="color:var(--accent)">${esc(lead.email)}</a></div>`:''}
+        ${lead.phone?`<div class="detail-label">電話</div><div class="detail-value"><a href="tel:${esc(lead.phone)}" style="color:var(--accent)">${esc(lead.phone)}</a></div>`:''}
+        ${lead.address?`<div class="detail-label">住所</div><div class="detail-value">${esc(lead.address)}</div>`:''}
+        <div class="detail-label">業種</div><div class="detail-value"><span class="badge badge-industry">${esc(lead.industry)}</span></div>
+        <div class="detail-label">担当者</div><div class="detail-value"><span class="badge badge-team">${esc(lead.team)}</span></div>
+        <div class="detail-label">重要度</div><div class="detail-value"><span class="priority-badge --${lead.priority.toLowerCase()}">${lead.priority}</span></div>
+        ${lead.notes?`<div class="detail-label">備考</div><div class="detail-value">${esc(lead.notes)}</div>`:''}
+        ${lead.nextAction?`<div class="detail-label">次のアクション</div><div class="detail-value">${esc(lead.nextAction)}</div>`:''}
+        <div class="detail-label">登録日</div><div class="detail-value">${lead.date}</div>
+        <div class="detail-label">フォロー</div><div class="detail-value">${lead.followed?'済み':'未対応'}</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline btn-sm" data-action="toggleFollow" data-id="${lead.id}">${lead.followed?'未対応に戻す':'フォロー済み'}</button>
+        <button class="btn btn-outline btn-sm" data-action="editLead" data-id="${lead.id}">編集</button>
+        <button class="btn btn-danger btn-sm" data-action="deleteLead" data-id="${lead.id}">削除</button>
+      </div>`;
+  } else {
+    modal.innerHTML=`
+      <div class="modal-header"><h2>リード編集</h2><button class="modal-close" data-action="closeModal">&times;</button></div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">氏名</label><input id="editName" value="${esc(lead.name)}"></div>
+        <div class="form-group"><label class="form-label">会社名</label><input id="editCompany" value="${esc(lead.company)}"></div>
+        <div class="form-group"><label class="form-label">部署</label><input id="editDept" value="${esc(lead.department||'')}"></div>
+        <div class="form-group"><label class="form-label">役職</label><input id="editPosition" value="${esc(lead.position||'')}"></div>
+        <div class="form-group"><label class="form-label">メール</label><input id="editEmail" value="${esc(lead.email||'')}"></div>
+        <div class="form-group"><label class="form-label">電話</label><input id="editPhone" value="${esc(lead.phone||'')}"></div>
+        <div class="form-group full"><label class="form-label">住所</label><input id="editAddress" value="${esc(lead.address||'')}"></div>
+        <div class="form-group full"><label class="form-label">業種</label><select id="editIndustry">${INDUSTRIES.map(i=>`<option${lead.industry===i?' selected':''}>${i}</option>`).join('')}</select></div>
+        <div class="form-group full"><label class="form-label">担当者</label>
+          <div class="team-select">${TEAM.map(t=>`<label class="team-option${lead.team===t?' selected':''}"><input type="radio" name="editTeam" value="${t}"${lead.team===t?' checked':''}>${t}</label>`).join('')}</div>
+        </div>
+        <div class="form-group full"><label class="form-label">重要度</label>
+          <div class="priority-select">
+            <label class="prio-option --a${lead.priority==='A'?' selected':''}"><input type="radio" name="editPriority" value="A"${lead.priority==='A'?' checked':''}>A</label>
+            <label class="prio-option --b${lead.priority==='B'?' selected':''}"><input type="radio" name="editPriority" value="B"${lead.priority==='B'?' checked':''}>B</label>
+            <label class="prio-option --c${lead.priority==='C'?' selected':''}"><input type="radio" name="editPriority" value="C"${lead.priority==='C'?' checked':''}>C</label>
+          </div>
+        </div>
+        <div class="form-group full"><label class="form-label">備考</label><textarea id="editNotes">${esc(lead.notes||'')}</textarea></div>
+        <div class="form-group full"><label class="form-label">次のアクション</label><input id="editAction" value="${esc(lead.nextAction||'')}"></div>
+      </div>
+      <div class="form-actions" style="margin-top:20px;display:flex">
+        <button class="btn btn-outline" data-action="closeModal">キャンセル</button>
+        <button class="btn btn-primary" data-action="saveEdit" data-id="${lead.id}">保存</button>
+      </div>`;
+    modal.querySelectorAll('.team-option').forEach(el=>{
+      el.addEventListener('click',()=>{modal.querySelectorAll('.team-option').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');el.querySelector('input').checked=true});
+    });
+    modal.querySelectorAll('.prio-option').forEach(el=>{
+      el.addEventListener('click',()=>{modal.querySelectorAll('.prio-option').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');el.querySelector('input').checked=true});
+    });
+  }
+  requestAnimationFrame(()=>overlay.classList.add('visible'));
+}
+
+function closeModal(){document.getElementById('modalOverlay').classList.remove('visible')}
+
+function exportCSV(){
+  const headers=['氏名','会社名','部署','役職','メール','電話','住所','業種','担当者','重要度','備考','次のアクション','フォロー','登録日'];
+  const rows=state.leads.map(l=>[l.name,l.company,l.department,l.position,l.email,l.phone,l.address,l.industry,l.team,l.priority,l.notes,l.nextAction,l.followed?'済':'未',l.date]);
+  const csv=[headers,...rows].map(r=>r.map(c=>`"${(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  if(window.claude?.downloads){
+    window.claude.downloads.save({filename:`exhibition-leads-${today()}.csv`,data:blob}).catch(()=>{});
+  } else {
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`leads-${today()}.csv`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
+  }
+  toast('CSVを出力しました');
+}
+
+// Global event delegation
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-action]');
+  if(!btn)return;
+  const action=btn.dataset.action;
+  const id=btn.dataset.id;
+  if(action==='view'){const l=state.leads.find(x=>x.id===id);if(l)showModal(l)}
+  else if(action==='closeModal')closeModal();
+  else if(action==='removePhoto'){state.regPhoto=null;renderRegister()}
+  else if(action==='clearForm'){state.regPhoto=null;renderRegister()}
+  else if(action==='saveLead')saveLead();
+  else if(action==='export')exportCSV();
+  else if(action==='goRegister')switchTab('register');
+  else if(action==='editLead'){const l=state.leads.find(x=>x.id===id);if(l)showModal(l,'edit')}
+  else if(action==='saveEdit'){
+    const l=state.leads.find(x=>x.id===id);
+    if(l){
+      l.name=document.getElementById('editName')?.value.trim()||l.name;
+      l.company=document.getElementById('editCompany')?.value.trim()||l.company;
+      l.department=document.getElementById('editDept')?.value.trim()||'';
+      l.position=document.getElementById('editPosition')?.value.trim()||'';
+      l.email=document.getElementById('editEmail')?.value.trim()||'';
+      l.phone=document.getElementById('editPhone')?.value.trim()||'';
+      l.address=document.getElementById('editAddress')?.value.trim()||'';
+      l.industry=document.getElementById('editIndustry')?.value||l.industry;
+      const t=document.querySelector('#modal input[name="editTeam"]:checked');if(t)l.team=t.value;
+      const p=document.querySelector('#modal input[name="editPriority"]:checked');if(p)l.priority=p.value;
+      l.notes=document.getElementById('editNotes')?.value.trim()||'';
+      l.nextAction=document.getElementById('editAction')?.value.trim()||'';
+      save();closeModal();render();toast('更新しました');
+    }
+  }
+  else if(action==='deleteLead'){if(confirm('このリードを削除しますか？')){state.leads=state.leads.filter(x=>x.id!==id);save();closeModal();render();toast('削除しました')}}
+  else if(action==='toggleFollow'){const l=state.leads.find(x=>x.id===id);if(l){l.followed=!l.followed;save();showModal(l);render()}}
+  else if(action==='zoomPhoto')btn.classList.toggle('zoomed');
+});
+
+// Tab switching (top nav + bottom nav)
+document.querySelectorAll('[data-tab]').forEach(b=>{
+  if(b.classList.contains('bnav-center-btn')||b.classList.contains('bnav-btn')||b.classList.contains('tab-btn-top')){
+    b.addEventListener('click',()=>switchTab(b.dataset.tab));
+  }
+});
+
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});
+
+// Theme
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('exh-theme',next);
+  updateThemeIcon();
+});
+function updateThemeIcon(){
+  const dark=document.documentElement.getAttribute('data-theme')==='dark'||(!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches);
+  document.getElementById('themeIcon').innerHTML=dark
+    ?'<path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>'
+    :'<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+}
+
+// Resize handler
+window.addEventListener('resize',updateStickySubmit);
+
+// Init
+const savedTheme=localStorage.getItem('exh-theme');
+if(savedTheme)document.documentElement.setAttribute('data-theme',savedTheme);
+updateThemeIcon();
+load();
+render();
+updateStickySubmit();
+</script>
