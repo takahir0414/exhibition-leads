@@ -109,7 +109,10 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 .kpi-card{background:var(--surface);border-radius:var(--r-lg);padding:20px 24px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light)}
 .kpi-label{font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 .kpi-value{font-size:36px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi-target{font-size:18px;font-weight:600;color:var(--text-3)}
 .kpi-sub{font-size:12px;color:var(--text-3);margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi-progress{width:100%;height:6px;background:var(--surface-alt);border-radius:3px;margin-top:10px;overflow:hidden}
+.kpi-progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .6s ease}
 .kpi-card.--a .kpi-value{color:var(--pa)}
 .kpi-card.--b .kpi-value{color:var(--pb)}
 .kpi-card.--c .kpi-value{color:var(--pc)}
@@ -384,15 +387,15 @@ function load(){
 
 function seedSample(){
   const s=[
-    {name:'田中太郎',company:'ABCメーカー株式会社',department:'DX推進部',position:'部長',email:'tanaka@abc-maker.co.jp',phone:'03-1234-5678',industry:'製造/素材',team:'菅野',priority:'A',notes:'AI導入に強い関心。来月の個別MTGを希望。',date:'2026-07-28'},
-    {name:'佐藤花子',company:'テックソリューションズ',department:'営業部',position:'課長',email:'sato@techsol.jp',phone:'03-2345-6789',industry:'情報通信/IT',team:'木下',priority:'B',notes:'既存のCRMからの乗り換えを検討中。',date:'2026-07-28'},
-    {name:'鈴木一郎',company:'グローバル人材サービス',department:'事業企画',position:'マネージャー',email:'suzuki@global-hr.co.jp',phone:'03-3456-7890',industry:'サービス/人材',team:'プロイ',priority:'A',notes:'研修プログラムの提案を求められた。資料送付予定。',date:'2026-07-29'},
-    {name:'高橋美咲',company:'メディカルイノベーション',department:'情報システム部',position:'主任',email:'takahashi@med-innov.co.jp',phone:'06-4567-8901',industry:'医療/福祉',team:'松尾',priority:'B',notes:'電子カルテ連携について質問あり。',date:'2026-07-29'},
-    {name:'山田健太',company:'デジタルクラウド株式会社',department:'開発部',position:'エンジニア',email:'yamada@digi-cloud.jp',phone:'03-5678-9012',industry:'情報通信/IT',team:'宇井',priority:'C',notes:'技術的な情報収集目的。',date:'2026-07-30'},
-    {name:'中村洋平',company:'東京建設工業',department:'経営企画室',position:'室長',email:'nakamura@tokyo-kensetsu.jp',phone:'03-6789-0123',industry:'不動産/建設',team:'菅野',priority:'B',notes:'現場のDX化に関心。',date:'2026-07-30'},
-    {name:'小林真理',company:'ファイナンスグループ',department:'人事部',position:'次長',email:'kobayashi@fin-group.co.jp',phone:'03-7890-1234',industry:'金融/保険',team:'木下',priority:'A',notes:'新入社員研修へのAI活用。予算確保済みとのこと。',date:'2026-07-30'},
+    {name:'田中太郎',company:'ABCメーカー株式会社',department:'DX推進部',position:'部長',email:'tanaka@abc-maker.co.jp',phone:'03-1234-5678',industry:'製造/素材',team:'菅野',priority:'A',notes:'AI導入に強い関心。来月の個別MTGを希望。',unansweredQ:'導入後のサポート体制について',date:'2026-07-28'},
+    {name:'佐藤花子',company:'テックソリューションズ',department:'営業部',position:'課長',email:'sato@techsol.jp',phone:'03-2345-6789',industry:'情報通信/IT',team:'木下',priority:'B',notes:'既存のCRMからの乗り換えを検討中。',unansweredQ:'',date:'2026-07-28'},
+    {name:'鈴木一郎',company:'グローバル人材サービス',department:'事業企画',position:'マネージャー',email:'suzuki@global-hr.co.jp',phone:'03-3456-7890',industry:'サービス/人材',team:'プロイ',priority:'A',notes:'研修プログラムの提案を求められた。資料送付予定。',unansweredQ:'他社との差別化ポイントを具体的に',date:'2026-07-29'},
+    {name:'高橋美咲',company:'メディカルイノベーション',department:'情報システム部',position:'主任',email:'takahashi@med-innov.co.jp',phone:'06-4567-8901',industry:'医療/福祉',team:'松尾',priority:'B',notes:'電子カルテ連携について質問あり。',unansweredQ:'HL7 FHIR対応の可否',date:'2026-07-29'},
+    {name:'山田健太',company:'デジタルクラウド株式会社',department:'開発部',position:'エンジニア',email:'yamada@digi-cloud.jp',phone:'03-5678-9012',industry:'情報通信/IT',team:'宇井',priority:'C',notes:'技術的な情報収集目的。',unansweredQ:'',date:'2026-07-30'},
+    {name:'中村洋平',company:'東京建設工業',department:'経営企画室',position:'室長',email:'nakamura@tokyo-kensetsu.jp',phone:'03-6789-0123',industry:'不動産/建設',team:'菅野',priority:'B',notes:'現場のDX化に関心。',unansweredQ:'建設現場での通信環境が悪い場合のオフライン対応',date:'2026-07-30'},
+    {name:'小林真理',company:'ファイナンスグループ',department:'人事部',position:'次長',email:'kobayashi@fin-group.co.jp',phone:'03-7890-1234',industry:'金融/保険',team:'木下',priority:'A',notes:'新入社員研修へのAI活用。予算確保済みとのこと。',unansweredQ:'',date:'2026-07-30'},
   ];
-  state.leads=s.map(l=>({id:uid(),address:'',nextAction:'',followed:false,photo:null,...l}));
+  state.leads=s.map(l=>({id:uid(),address:'',nextAction:'',followed:false,photo:null,unansweredQ:'',...l}));
 }
 
 function resizeImg(file){
@@ -458,7 +461,7 @@ function renderDash(){
 
   el.innerHTML=`
     <div class="kpi-row">
-      <div class="kpi-card"><div class="kpi-label">総リード</div><div class="kpi-value">${leads.length}</div><div class="kpi-sub">登録済み</div></div>
+      <div class="kpi-card"><div class="kpi-label">総リード</div><div class="kpi-value">${leads.length}<span class="kpi-target"> / 200</span></div><div class="kpi-progress"><div class="kpi-progress-fill" style="width:${Math.min(leads.length/200*100,100)}%"></div></div><div class="kpi-sub">目標 200件（達成率 ${Math.round(leads.length/200*100)}%）</div></div>
       <div class="kpi-card --a"><div class="kpi-label">重要度 A</div><div class="kpi-value">${a}</div><div class="kpi-sub">最優先</div></div>
       <div class="kpi-card --b"><div class="kpi-label">重要度 B</div><div class="kpi-value">${b}</div><div class="kpi-sub">要フォロー</div></div>
       <div class="kpi-card --c"><div class="kpi-label">重要度 C</div><div class="kpi-value">${c}</div><div class="kpi-sub">情報収集</div></div>
@@ -512,16 +515,6 @@ function renderRegister(){
         `}
       </div>
       <div class="form-grid">
-        <div class="form-group"><label class="form-label">氏名<span class="required">*</span></label><input id="regName" placeholder="山田 太郎" autocomplete="off"></div>
-        <div class="form-group"><label class="form-label">会社名<span class="required">*</span></label><input id="regCompany" placeholder="株式会社◯◯" autocomplete="off"></div>
-        <div class="form-group"><label class="form-label">部署</label><input id="regDept" placeholder="DX推進部"></div>
-        <div class="form-group"><label class="form-label">役職</label><input id="regPosition" placeholder="部長"></div>
-        <div class="form-group"><label class="form-label">メール</label><input id="regEmail" type="email" placeholder="name@example.com" inputmode="email"></div>
-        <div class="form-group"><label class="form-label">電話</label><input id="regPhone" type="tel" placeholder="03-0000-0000" inputmode="tel"></div>
-        <div class="form-group full"><label class="form-label">住所</label><input id="regAddress" placeholder="東京都◯◯区..."></div>
-        <div class="form-group full"><label class="form-label">業種</label>
-          <select id="regIndustry"><option value="">自動判定</option>${INDUSTRIES.map(i=>`<option value="${i}">${i}</option>`).join('')}</select>
-        </div>
         <div class="form-group full">
           <label class="form-label">担当者<span class="required">*</span></label>
           <div class="team-select">${TEAM.map(t=>`<label class="team-option"><input type="radio" name="regTeam" value="${t}">${t}</label>`).join('')}</div>
@@ -535,7 +528,7 @@ function renderRegister(){
           </div>
         </div>
         <div class="form-group full"><label class="form-label">備考</label><textarea id="regNotes" placeholder="AIの導入に関心あり。来月にデモを希望..."></textarea></div>
-        <div class="form-group full"><label class="form-label">次のアクション</label><input id="regAction" placeholder="資料送付 / デモ日程調整 / ..."></div>
+        <div class="form-group full"><label class="form-label">返答できなかった質問</label><textarea id="regUnansweredQ" placeholder="後日チームで共有・回答する質問を記入..." style="min-height:60px"></textarea></div>
       </div>
       <div class="form-actions">
         <button class="btn btn-outline" data-action="clearForm">クリア</button>
@@ -554,11 +547,6 @@ function setupRegisterEvents(){
       renderRegister();
     });
   });
-  const ci=document.getElementById('regCompany');
-  if(ci) ci.addEventListener('blur',()=>{
-    const sel=document.getElementById('regIndustry');
-    if(sel&&!sel.value){const g=classifyIndustry(ci.value);if(g!=='その他')sel.value=g}
-  });
   document.querySelectorAll('#sec-register .team-option').forEach(el=>{
     el.addEventListener('click',()=>{
       document.querySelectorAll('#sec-register .team-option').forEach(o=>o.classList.remove('selected'));
@@ -574,26 +562,17 @@ function setupRegisterEvents(){
 }
 
 function saveLead(){
-  const name=document.getElementById('regName')?.value.trim();
-  const company=document.getElementById('regCompany')?.value.trim();
   const teamEl=document.querySelector('#sec-register input[name="regTeam"]:checked');
   const prioEl=document.querySelector('#sec-register input[name="regPriority"]:checked');
-  if(!name||!company){toast('氏名と会社名は必須です');return}
   if(!teamEl){toast('担当者を選択してください');return}
   if(!prioEl){toast('重要度を選択してください');return}
-  const indSel=document.getElementById('regIndustry');
-  const industry=indSel?.value||classifyIndustry(company);
   const lead={
-    id:uid(),name,company,
-    department:document.getElementById('regDept')?.value.trim()||'',
-    position:document.getElementById('regPosition')?.value.trim()||'',
-    email:document.getElementById('regEmail')?.value.trim()||'',
-    phone:document.getElementById('regPhone')?.value.trim()||'',
-    address:document.getElementById('regAddress')?.value.trim()||'',
-    industry,team:teamEl.value,priority:prioEl.value,
+    id:uid(),name:'',company:'',department:'',position:'',
+    email:'',phone:'',address:'',industry:'その他',
+    team:teamEl.value,priority:prioEl.value,
     notes:document.getElementById('regNotes')?.value.trim()||'',
-    nextAction:document.getElementById('regAction')?.value.trim()||'',
-    followed:false,photo:state.regPhoto,date:today()
+    unansweredQ:document.getElementById('regUnansweredQ')?.value.trim()||'',
+    nextAction:'',followed:false,photo:state.regPhoto,date:today()
   };
   state.leads.unshift(lead);save();
   state.regPhoto=null;
@@ -605,7 +584,7 @@ function renderLeads(){
   const el=document.getElementById('sec-leads');
   const f=state.filters;
   let filtered=state.leads.filter(l=>{
-    if(f.q&&!`${l.name}${l.company}${l.notes}`.toLowerCase().includes(f.q.toLowerCase()))return false;
+    if(f.q&&!`${l.name}${l.company}${l.notes}${l.unansweredQ||''}`.toLowerCase().includes(f.q.toLowerCase()))return false;
     if(f.team&&l.team!==f.team)return false;
     if(f.priority&&l.priority!==f.priority)return false;
     if(f.industry&&l.industry!==f.industry)return false;
@@ -629,6 +608,7 @@ function renderLeads(){
           </div>
           <div class="lead-card-badges"><span class="badge badge-industry">${esc(l.industry)}</span><span class="badge badge-team">${esc(l.team)}</span></div>
           ${l.notes?`<div class="lead-card-notes">${esc(l.notes)}</div>`:''}
+          ${l.unansweredQ?`<div class="lead-card-notes" style="color:var(--pb)">&#10067; ${esc(l.unansweredQ)}</div>`:''}
           <div class="lead-card-date">${l.date}</div>
         </div>`).join('')}</div>
     `:`<div class="empty-state">
@@ -660,6 +640,7 @@ function showModal(lead,mode='view'){
         <div class="detail-label">担当者</div><div class="detail-value"><span class="badge badge-team">${esc(lead.team)}</span></div>
         <div class="detail-label">重要度</div><div class="detail-value"><span class="priority-badge --${lead.priority.toLowerCase()}">${lead.priority}</span></div>
         ${lead.notes?`<div class="detail-label">備考</div><div class="detail-value">${esc(lead.notes)}</div>`:''}
+        ${lead.unansweredQ?`<div class="detail-label">未回答の質問</div><div class="detail-value" style="color:var(--pb)">${esc(lead.unansweredQ)}</div>`:''}
         ${lead.nextAction?`<div class="detail-label">次のアクション</div><div class="detail-value">${esc(lead.nextAction)}</div>`:''}
         <div class="detail-label">登録日</div><div class="detail-value">${lead.date}</div>
         <div class="detail-label">フォロー</div><div class="detail-value">${lead.followed?'済み':'未対応'}</div>
@@ -692,6 +673,7 @@ function showModal(lead,mode='view'){
           </div>
         </div>
         <div class="form-group full"><label class="form-label">備考</label><textarea id="editNotes">${esc(lead.notes||'')}</textarea></div>
+        <div class="form-group full"><label class="form-label">返答できなかった質問</label><textarea id="editUnansweredQ" style="min-height:60px">${esc(lead.unansweredQ||'')}</textarea></div>
         <div class="form-group full"><label class="form-label">次のアクション</label><input id="editAction" value="${esc(lead.nextAction||'')}"></div>
       </div>
       <div class="form-actions" style="margin-top:20px;display:flex">
@@ -711,8 +693,8 @@ function showModal(lead,mode='view'){
 function closeModal(){document.getElementById('modalOverlay').classList.remove('visible')}
 
 function exportCSV(){
-  const headers=['氏名','会社名','部署','役職','メール','電話','住所','業種','担当者','重要度','備考','次のアクション','フォロー','登録日'];
-  const rows=state.leads.map(l=>[l.name,l.company,l.department,l.position,l.email,l.phone,l.address,l.industry,l.team,l.priority,l.notes,l.nextAction,l.followed?'済':'未',l.date]);
+  const headers=['氏名','会社名','部署','役職','メール','電話','住所','業種','担当者','重要度','備考','返答できなかった質問','次のアクション','フォロー','登録日'];
+  const rows=state.leads.map(l=>[l.name,l.company,l.department,l.position,l.email,l.phone,l.address,l.industry,l.team,l.priority,l.notes,l.unansweredQ||'',l.nextAction,l.followed?'済':'未',l.date]);
   const csv=[headers,...rows].map(r=>r.map(c=>`"${(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   if(window.claude?.downloads){
@@ -752,6 +734,7 @@ document.addEventListener('click',e=>{
       const t=document.querySelector('#modal input[name="editTeam"]:checked');if(t)l.team=t.value;
       const p=document.querySelector('#modal input[name="editPriority"]:checked');if(p)l.priority=p.value;
       l.notes=document.getElementById('editNotes')?.value.trim()||'';
+      l.unansweredQ=document.getElementById('editUnansweredQ')?.value.trim()||'';
       l.nextAction=document.getElementById('editAction')?.value.trim()||'';
       save();closeModal();render();toast('更新しました');
     }
