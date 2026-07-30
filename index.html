@@ -405,9 +405,10 @@ function parseCardText(text){
   const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   const emailMatch=text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
   const phoneMatch=text.match(/0\d{1,4}[-‐−]\d{1,4}[-‐−]\d{3,4}/)||text.match(/0\d{9,10}/);
-  const companyLine=lines.find(l=>/(株式会社|有限会社|合同会社|㈱|㈲|Co\.,?\s*Ltd|Inc\.|Corporation)/i.test(l))||'';
-  const company=companyLine.replace(/^[■●・\s]+/,'').trim();
-  const nameCandidate=lines.find(l=>l!==companyLine&&/^[一-鿿぀-ゟ゠-ヿ\s]{2,8}$/.test(l)&&!/(部|課|係|室|株式会社|有限会社|合同会社)/.test(l))||'';
+  // 日本語OCRは漢字の間に余分な空白を挿入しやすいため、判定時は空白を除去して照合する
+  const companyLine=lines.find(l=>/(株式会社|有限会社|合同会社|㈱|㈲|Co\.,?\s*Ltd|Inc\.|Corporation)/i.test(l.replace(/\s+/g,'')))||'';
+  const company=companyLine.replace(/\s+/g,'').replace(/^[■●・]+/,'');
+  const nameCandidate=lines.find(l=>l!==companyLine&&/^[一-鿿぀-ゟ゠-ヿ\s]{2,8}$/.test(l)&&!/(部|課|係|室|株式会社|有限会社|合同会社)/.test(l.replace(/\s+/g,'')))||'';
   return{
     company,
     name:nameCandidate,
