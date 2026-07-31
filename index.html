@@ -255,7 +255,7 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 /* ===== MODAL ===== */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
 .modal-overlay.visible{opacity:1;pointer-events:auto}
-.modal{position:fixed;top:50%;left:50%;width:calc(100% - 48px);max-width:600px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:28px;transform:translate(-50%,calc(-50% + 16px));transition:transform .25s}
+.modal{position:fixed;top:50%;left:50%;width:calc(100% - 48px);max-width:760px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:32px;transform:translate(-50%,calc(-50% + 16px));transition:transform .25s}
 .modal-overlay.visible .modal{transform:translate(-50%,-50%)}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .modal-header h2{font-size:18px;font-weight:700}
@@ -1087,7 +1087,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='7';
+const APP_VERSION='8';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
