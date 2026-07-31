@@ -403,7 +403,6 @@ main{padding:24px;max-width:1200px;margin:0 auto}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script>
 const TEAM = ['菅野','木下','プロイ','松尾','宇井','板橋'];
 const INDUSTRIES = ['製造/素材','情報通信/IT','サービス/人材','金融/保険','不動産/建設','小売/流通','医療/福祉','教育/研究','広告/メディア','コンサル','その他'];
@@ -424,23 +423,6 @@ function classifyIndustry(c){
   if(!c)return 'その他';
   for(const[ind,keys]of Object.entries(IND_KEYS)){if(keys.some(k=>c.includes(k)))return ind}
   return 'その他';
-}
-
-function parseCardText(text){
-  const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  const emailMatch=text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-  const phoneMatch=text.match(/0\d{1,4}[-‐−]\d{1,4}[-‐−]\d{3,4}/)||text.match(/0\d{9,10}/);
-  // 日本語OCRは漢字の間に余分な空白を挿入しやすいため、判定時は空白を除去して照合する
-  const companyLine=lines.find(l=>/(株式会社|有限会社|合同会社|㈱|㈲|Co\.,?\s*Ltd|Inc\.|Corporation)/i.test(l.replace(/\s+/g,'')))||'';
-  const company=companyLine.replace(/\s+/g,'').replace(/^[■●・]+/,'');
-  const nameCandidate=lines.find(l=>l!==companyLine&&/^[一-鿿぀-ゟ゠-ヿ\s]{2,8}$/.test(l)&&!/(部|課|係|室|株式会社|有限会社|合同会社)/.test(l.replace(/\s+/g,'')))||'';
-  return{
-    company,
-    name:nameCandidate,
-    phone:phoneMatch?phoneMatch[0]:'',
-    email:emailMatch?emailMatch[0]:'',
-    industry:company?classifyIndustry(company):''
-  };
 }
 
 function captureRegFormState(){
@@ -471,8 +453,26 @@ async function runOcr(photoDataUrl){
   renderRegister();
   restoreRegFormState(saved);
   try{
-    const{data}=await Tesseract.recognize(photoDataUrl,'jpn+eng');
-    state.regExtracted=parseCardText(data.text||'');
+    const mimeType=photoDataUrl.match(/^data:([^;]+);/)?.[1]||'image/jpeg';
+    const base64=photoDataUrl.split(',')[1];
+    const resp=await fetch('/api/ocr',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:base64,mimeType})
+    });
+    const data=await resp.json();
+    if(!resp.ok||data.error)throw new Error(data.error||'OCR failed');
+    const company=data.company||'';
+    state.regExtracted={
+      company,
+      name:data.name||'',
+      department:data.department||'',
+      position:data.position||'',
+      phone:data.phone||'',
+      email:data.email||'',
+      address:data.address||'',
+      industry:company?classifyIndustry(company):''
+    };
     state.regOcrStatus='done';
   }catch(e){
     state.regOcrStatus='error';
@@ -488,7 +488,7 @@ function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function daysSince(dateStr){return Math.floor((new Date(today())-new Date(dateStr))/86400000)}
 function photoOrIcon(l){return l.photo?`<img src="${l.photo}" alt="">`:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'}
 
-const state={tab:'dashboard',leads:[],filters:{q:'',team:'',priority:'',industry:''},regPhoto:null,regOcrStatus:'idle',regExtracted:{company:'',name:'',phone:'',email:'',industry:''}};
+const state={tab:'dashboard',leads:[],filters:{q:'',team:'',priority:'',industry:''},regPhoto:null,regOcrStatus:'idle',regExtracted:{company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''}};
 
 function save(){localStorage.setItem('exh-leads',JSON.stringify(state.leads))}
 function load(){
@@ -654,8 +654,11 @@ function renderRegister(){
           <div class="ocr-result-hint form-group full">自動読み取り結果（内容を確認・修正してください）</div>
           <div class="form-group"><label class="form-label">会社名</label><input id="regCompany" placeholder="株式会社◯◯" value="${esc(state.regExtracted.company)}"></div>
           <div class="form-group"><label class="form-label">氏名</label><input id="regName" placeholder="山田 太郎" value="${esc(state.regExtracted.name)}"></div>
+          <div class="form-group"><label class="form-label">部署</label><input id="regDepartment" placeholder="営業部" value="${esc(state.regExtracted.department)}"></div>
+          <div class="form-group"><label class="form-label">役職</label><input id="regPosition" placeholder="部長" value="${esc(state.regExtracted.position)}"></div>
           <div class="form-group"><label class="form-label">電話</label><input id="regPhone" type="tel" placeholder="03-0000-0000" value="${esc(state.regExtracted.phone)}"></div>
           <div class="form-group"><label class="form-label">メール</label><input id="regEmail" type="email" placeholder="name@example.com" value="${esc(state.regExtracted.email)}"></div>
+          <div class="form-group full"><label class="form-label">住所</label><input id="regAddress" placeholder="東京都◯◯区..." value="${esc(state.regExtracted.address)}"></div>
           <div class="form-group full"><label class="form-label">業種（自動判定・変更可）</label>
             <select id="regIndustry">
               <option value="">未設定</option>
@@ -694,7 +697,7 @@ function setupRegisterEvents(){
     if(inp) inp.addEventListener('change',async e=>{
       const f=e.target.files[0];if(!f)return;
       state.regPhoto=await resizeImg(f);
-      state.regExtracted={company:'',name:'',phone:'',email:'',industry:''};
+      state.regExtracted={company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''};
       state.regOcrStatus='idle';
       renderRegister();
       runOcr(state.regPhoto);
@@ -724,10 +727,12 @@ function saveLead(){
   const lead={
     id:uid(),
     name:document.getElementById('regName')?.value.trim()||'',
-    company,department:'',position:'',
+    company,
+    department:document.getElementById('regDepartment')?.value.trim()||'',
+    position:document.getElementById('regPosition')?.value.trim()||'',
     email:document.getElementById('regEmail')?.value.trim()||'',
     phone:document.getElementById('regPhone')?.value.trim()||'',
-    address:'',industry,
+    address:document.getElementById('regAddress')?.value.trim()||'',industry,
     team:teamEl.value,priority:prioEl.value,
     notes:document.getElementById('regNotes')?.value.trim()||'',
     unansweredQ:document.getElementById('regUnansweredQ')?.value.trim()||'',
@@ -736,7 +741,7 @@ function saveLead(){
   };
   state.leads.unshift(lead);save();
   state.regPhoto=null;
-  state.regExtracted={company:'',name:'',phone:'',email:'',industry:''};
+  state.regExtracted={company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''};
   state.regOcrStatus='idle';
   toast('登録しました');
   renderRegister();
@@ -1011,8 +1016,8 @@ document.addEventListener('click',e=>{
   const id=btn.dataset.id;
   if(action==='view'){const l=state.leads.find(x=>x.id===id);if(l)showModal(l)}
   else if(action==='closeModal')closeModal();
-  else if(action==='removePhoto'){state.regPhoto=null;state.regExtracted={company:'',name:'',phone:'',email:'',industry:''};state.regOcrStatus='idle';renderRegister()}
-  else if(action==='clearForm'){state.regPhoto=null;state.regExtracted={company:'',name:'',phone:'',email:'',industry:''};state.regOcrStatus='idle';renderRegister()}
+  else if(action==='removePhoto'){state.regPhoto=null;state.regExtracted={company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''};state.regOcrStatus='idle';renderRegister()}
+  else if(action==='clearForm'){state.regPhoto=null;state.regExtracted={company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''};state.regOcrStatus='idle';renderRegister()}
   else if(action==='saveLead')saveLead();
   else if(action==='export')exportCSV();
   else if(action==='goRegister')switchTab('register');
@@ -1088,7 +1093,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='10';
+const APP_VERSION='11';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
