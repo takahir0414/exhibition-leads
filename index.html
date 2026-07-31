@@ -253,10 +253,10 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 .lead-card-date{font-size:11px;color:var(--text-3);margin-top:8px;font-variant-numeric:tabular-nums}
 
 /* ===== MODAL ===== */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
 .modal-overlay.visible{opacity:1;pointer-events:auto}
-.modal{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:600px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:var(--shadow-lg);padding:28px;transform:translateY(16px);transition:transform .25s}
-.modal-overlay.visible .modal{transform:translateY(0)}
+.modal{position:fixed;top:50%;left:50%;width:calc(100% - 48px);max-width:600px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:28px;transform:translate(-50%,calc(-50% + 16px));transition:transform .25s}
+.modal-overlay.visible .modal{transform:translate(-50%,-50%)}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .modal-header h2{font-size:18px;font-weight:700}
 .modal-close{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;transition:background .2s;font-size:22px;color:var(--text-3);-webkit-tap-highlight-color:transparent}
@@ -314,7 +314,8 @@ main{padding:24px;max-width:1200px;margin:0 auto}
   .filter-bar input[type="text"],.filter-bar select{max-width:100%}
   .export-btn{margin-left:0}
 
-  .modal{max-height:92vh;border-radius:var(--r-lg) var(--r-lg) 0 0;align-self:end;padding:24px 20px}
+  .modal{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:92vh;border-radius:var(--r-lg) var(--r-lg) 0 0;padding:24px 20px;transform:translateY(16px)}
+  .modal-overlay.visible .modal{transform:translateY(0)}
   .modal-overlay{padding:0}
 
   .sticky-submit{display:flex;position:fixed;bottom:calc(56px + var(--safe-b));left:0;right:0;padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);z-index:95;gap:12px}
@@ -1086,7 +1087,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='6';
+const APP_VERSION='7';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
