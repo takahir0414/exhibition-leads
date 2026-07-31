@@ -281,6 +281,7 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 @media(max-width:900px){
   .kpi-row{grid-template-columns:repeat(2,1fr)}
   .dash-grid{grid-template-columns:1fr}
+  .dash-card-industry{order:99}
 }
 
 /* ===== RESPONSIVE: MOBILE ===== */
@@ -595,7 +596,7 @@ function renderDash(){
       <div class="kpi-card --c"><div class="kpi-label">重要度 C</div><div class="kpi-value">${c}</div><div class="kpi-sub">情報収集</div></div>
     </div>
     <div class="dash-grid">
-      <div class="dash-card">
+      <div class="dash-card dash-card-industry">
         <h3>業種分布</h3>
         ${indSorted.map(([ind,cnt])=>`<div class="bar-row"><div class="bar-label">${ind}</div><div class="bar-track"><div class="bar-fill" style="width:${cnt/indMax*100}%"></div></div><div class="bar-pct">${cnt}</div></div>`).join('')||'<div class="empty-state"><p>データなし</p></div>'}
       </div>
@@ -1087,7 +1088,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='8';
+const APP_VERSION='9';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
