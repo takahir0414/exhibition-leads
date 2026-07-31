@@ -224,26 +224,27 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 .badge-stage-scheduled{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
 .badge-stage-done{background:var(--accent-soft);color:var(--accent);border:1px solid var(--border-light)}
 .badge-overdue{background:var(--pa-bg);color:var(--pa);border:1px solid var(--pa-border);font-weight:800}
-.followup-actions{display:flex;gap:8px;margin-top:12px}
-.followup-actions .btn{flex:1}
 .followup-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-.followup-column{flex:0 0 260px;scroll-snap-align:start;background:var(--surface);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);display:flex;flex-direction:column;gap:12px}
-.followup-column-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--border-light)}
+.followup-column{flex:0 0 280px;scroll-snap-align:start;background:var(--surface);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);display:flex;flex-direction:column}
+.followup-column-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid var(--border-light)}
 .followup-column-title{font-size:15px;font-weight:700}
 .followup-column-count{font-size:11px;font-weight:700;color:var(--text-3);background:var(--surface-alt);padding:3px 9px;border-radius:10px}
-.followup-mini-card{background:var(--surface-alt);border-radius:var(--r);padding:12px;border:1px solid var(--border-light)}
-.followup-mini-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.followup-mini-photo{width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--surface);display:grid;place-items:center;border:1px solid var(--border-light)}
-.followup-mini-photo img{width:100%;height:100%;object-fit:cover}
-.followup-mini-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.followup-mini-company{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.followup-row{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--border-light);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s;border-radius:6px}
+.followup-row:last-child{border-bottom:none}
+.followup-row:hover,.followup-row:active{background:var(--surface-alt)}
+.followup-row-photo{width:26px;height:26px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--surface-alt);display:grid;place-items:center;border:1px solid var(--border-light)}
+.followup-row-photo img{width:100%;height:100%;object-fit:cover}
+.followup-row-photo svg{width:14px;height:14px}
+.followup-row-name{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.followup-row .priority-badge{width:20px;height:20px;font-size:10px;flex-shrink:0;border-radius:5px}
+.followup-row .badge{flex-shrink:0;white-space:nowrap;font-size:10px;padding:2px 7px}
 .followup-column-empty{text-align:center;padding:20px 8px;color:var(--text-3);font-size:12px}
-@media(max-width:600px){.followup-column{flex:0 0 80vw}}
+@media(max-width:600px){.followup-column{flex:0 0 85vw}}
 .lead-card-notes{font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .lead-card-date{font-size:11px;color:var(--text-3);margin-top:8px;font-variant-numeric:tabular-nums}
 
 /* ===== MODAL ===== */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:grid;place-items:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
 .modal-overlay.visible{opacity:1;pointer-events:auto}
 .modal{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:600px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:var(--shadow-lg);padding:28px;transform:translateY(16px);transition:transform .25s}
 .modal-overlay.visible .modal{transform:translateY(0)}
@@ -770,6 +771,12 @@ function stageBadgeHtml(l){
   if(l.followupStatus==='完了')return `<span class="badge badge-stage-done">完了${l.meetingType?'・'+esc(l.meetingType):''}</span>`;
   return days>7?`<span class="badge badge-overdue">期限超過（${days}日経過）</span>`:`<span class="badge badge-stage-todo">未着手（${days}日経過）</span>`;
 }
+function stageBadgeCompact(l){
+  if(l.followupStatus==='連絡済み')return `<span class="badge badge-stage-contacted">連絡済み</span>`;
+  if(l.followupStatus==='日程確定')return `<span class="badge badge-stage-scheduled">${esc(l.meetingType||'確定')}</span>`;
+  if(l.followupStatus==='完了')return `<span class="badge badge-stage-done">完了</span>`;
+  return daysSince(l.date)>7?`<span class="badge badge-overdue">超過</span>`:`<span class="badge badge-stage-todo">未着手</span>`;
+}
 function followupActionHtml(l){
   if(l.followupStatus==='未着手')return `<button class="btn btn-primary btn-sm" data-action="openContactModal" data-id="${l.id}">連絡した</button>`;
   if(l.followupStatus==='連絡済み')return `<button class="btn btn-primary btn-sm" data-action="openMeetingModal" data-id="${l.id}">日程を確定</button>`;
@@ -815,20 +822,11 @@ function renderFollowup(){
             <div class="followup-column-count">${col.leads.length}件</div>
           </div>
           ${col.leads.length?col.leads.map(l=>`
-            <div class="followup-mini-card">
-              <div class="followup-mini-top">
-                <div class="followup-mini-photo">${photoOrIcon(l)}</div>
-                <div style="flex:1;min-width:0">
-                  <div class="followup-mini-name">${esc(l.name||'氏名未入力')}</div>
-                  <div class="followup-mini-company">${esc(l.company||l.date)}</div>
-                </div>
-                <div class="priority-badge --${l.priority.toLowerCase()}">${l.priority}</div>
-              </div>
-              <div class="lead-card-badges">${stageBadgeHtml(l)}</div>
-              <div class="followup-actions">
-                ${followupActionHtml(l)}
-                <button class="btn btn-outline btn-sm" data-action="view" data-id="${l.id}">詳細</button>
-              </div>
+            <div class="followup-row" data-action="view" data-id="${l.id}">
+              <div class="followup-row-photo">${photoOrIcon(l)}</div>
+              <div class="followup-row-name">${esc(l.name||l.company||'氏名未入力')}</div>
+              <div class="priority-badge --${l.priority.toLowerCase()}">${l.priority}</div>
+              ${stageBadgeCompact(l)}
             </div>
           `).join(''):'<div class="followup-column-empty">担当リードなし</div>'}
         </div>
