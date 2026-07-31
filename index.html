@@ -491,7 +491,15 @@ const state={tab:'dashboard',leads:[],filters:{q:'',team:'',priority:'',industry
 function save(){localStorage.setItem('exh-leads',JSON.stringify(state.leads))}
 function load(){
   const d=localStorage.getItem('exh-leads');
-  if(d){state.leads=JSON.parse(d)}else{seedSample();save()}
+  if(d){
+    // 過去バージョンで保存されたリードに新フィールドを補完する（データ移行）
+    state.leads=JSON.parse(d).map(l=>({
+      id:uid(),address:'',nextAction:'',followed:false,photo:null,unansweredQ:'',
+      followupStatus:'未着手',contactMethod:'',contactedDate:'',meetingType:'',meetingDate:'',
+      ...l
+    }));
+    save();
+  }else{seedSample();save()}
 }
 
 function seedSample(){
@@ -503,7 +511,7 @@ function seedSample(){
     {name:'山田健太',company:'デジタルクラウド株式会社',department:'開発部',position:'エンジニア',email:'yamada@digi-cloud.jp',phone:'03-5678-9012',industry:'情報通信/IT',team:'宇井',priority:'C',notes:'技術的な情報収集目的。',unansweredQ:'',date:'2026-07-30',followupStatus:'完了',followed:true,contactMethod:'電話',contactedDate:'2026-07-31',meetingType:'対面',meetingDate:'2026-08-01'},
     {name:'中村洋平',company:'東京建設工業',department:'経営企画室',position:'室長',email:'nakamura@tokyo-kensetsu.jp',phone:'03-6789-0123',industry:'不動産/建設',team:'菅野',priority:'B',notes:'現場のDX化に関心。',unansweredQ:'建設現場での通信環境が悪い場合のオフライン対応',date:'2026-07-30',followupStatus:'未着手'},
     {name:'小林真理',company:'ファイナンスグループ',department:'人事部',position:'次長',email:'kobayashi@fin-group.co.jp',phone:'03-7890-1234',industry:'金融/保険',team:'木下',priority:'A',notes:'新入社員研修へのAI活用。予算確保済みとのこと。',unansweredQ:'',date:'2026-07-30',followupStatus:'連絡済み',contactMethod:'電話',contactedDate:'2026-07-31'},
-    {name:'渡辺健一',company:'合同会社ネクストギア',department:'技術部',position:'マネージャー',email:'watanabe@nextgear.jp',phone:'03-8901-2345',industry:'情報通信/IT',team:'菅野',priority:'C',notes:'情報収集段階。次回展示会にも来場予定とのこと。',unansweredQ:'',date:'2026-07-30',followupStatus:'未着手'},
+    {name:'渡辺健一',company:'合同会社ネクストギア',department:'技術部',position:'マネージャー',email:'watanabe@nextgear.jp',phone:'03-8901-2345',industry:'情報通信/IT',team:'菅野',priority:'C',notes:'情報収集段階。次回展示会にも来場予定とのこと。',unansweredQ:'',date:'2026-07-25',followupStatus:'未着手'},
     {name:'伊藤久美子',company:'東西物流株式会社',department:'物流企画部',position:'課長',email:'ito@tozai-butsuryu.co.jp',phone:'06-2345-6789',industry:'小売/流通',team:'木下',priority:'C',notes:'倉庫管理システムとの連携に興味。',unansweredQ:'',date:'2026-07-29',followupStatus:'日程確定',contactMethod:'メール',contactedDate:'2026-07-30',meetingType:'ZOOM',meetingDate:'2026-08-06'},
     {name:'加藤誠',company:'加藤精密工業株式会社',department:'製造部',position:'部長',email:'kato@kato-seimitsu.co.jp',phone:'052-345-6789',industry:'製造/素材',team:'プロイ',priority:'B',notes:'工場の検品工程へのAI活用を検討中。',unansweredQ:'導入までの標準的な期間はどれくらいか',date:'2026-07-30',followupStatus:'未着手'},
     {name:'松本さゆり',company:'さゆり広告社',department:'企画制作部',position:'ディレクター',email:'matsumoto@sayuri-ad.co.jp',phone:'03-9012-3456',industry:'広告/メディア',team:'プロイ',priority:'C',notes:'クリエイティブ制作の効率化に関心。',unansweredQ:'',date:'2026-07-28',followupStatus:'連絡済み',contactMethod:'電話',contactedDate:'2026-07-29'},
@@ -782,22 +790,22 @@ function stageBadgeHtml(l){
   if(l.followupStatus==='連絡済み')return `<span class="badge badge-stage-contacted">${stageLabel(l.followupStatus)}${l.contactMethod?'・'+esc(l.contactMethod):''}</span>`;
   if(l.followupStatus==='日程確定')return `<span class="badge badge-stage-scheduled">${esc(l.meetingType||'')} ${esc(l.meetingDate||'')}</span>`;
   if(l.followupStatus==='完了')return `<span class="badge badge-stage-done">完了${l.meetingType?'・'+esc(l.meetingType):''}</span>`;
-  return days>7?`<span class="badge badge-overdue">要対応（${days}日経過）</span>`:`<span class="badge badge-stage-todo">${stageLabel(l.followupStatus)}（${days}日経過）</span>`;
+  return days>5?`<span class="badge badge-overdue">要対応（${days}日経過）</span>`:`<span class="badge badge-stage-todo">${stageLabel(l.followupStatus)}（${days}日経過）</span>`;
 }
 function stageBadgeCompact(l){
   if(l.followupStatus==='連絡済み')return `<span class="badge badge-stage-contacted">${stageLabel(l.followupStatus)}</span>`;
   if(l.followupStatus==='日程確定')return `<span class="badge badge-stage-scheduled">${esc(l.meetingType||'確定')}</span>`;
   if(l.followupStatus==='完了')return `<span class="badge badge-stage-done">完了</span>`;
-  return daysSince(l.date)>7?`<span class="badge badge-overdue">要対応</span>`:`<span class="badge badge-stage-todo">${stageLabel(l.followupStatus)}</span>`;
+  return daysSince(l.date)>5?`<span class="badge badge-overdue">要対応</span>`:`<span class="badge badge-stage-todo">${stageLabel(l.followupStatus)}</span>`;
 }
 function renderOverdueAlertHtml(leads){
-  const overdueLeads=leads.filter(l=>l.followupStatus==='未着手'&&daysSince(l.date)>7).sort((a,b)=>daysSince(b.date)-daysSince(a.date));
+  const overdueLeads=leads.filter(l=>l.followupStatus==='未着手'&&daysSince(l.date)>5).sort((a,b)=>daysSince(b.date)-daysSince(a.date));
   if(!overdueLeads.length)return'';
   return`
     <div class="alert-banner">
       <div class="alert-banner-header">
         <svg class="alert-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span>名刺交換から1週間以上連絡していないリードが${overdueLeads.length}件あります</span>
+        <span>名刺交換から5日以上連絡していないリードが${overdueLeads.length}件あります</span>
       </div>
       <div class="alert-list">
         ${overdueLeads.map(l=>`
@@ -837,7 +845,7 @@ function renderFollowup(){
   const contacted=leads.filter(l=>l.followupStatus==='連絡済み');
   const scheduled=leads.filter(l=>l.followupStatus==='日程確定');
   const done=leads.filter(l=>l.followupStatus==='完了');
-  const overdue=todo.filter(l=>daysSince(l.date)>7).length;
+  const overdue=todo.filter(l=>daysSince(l.date)>5).length;
 
   const board=TEAM.map(t=>({team:t,leads:sortByFollowupPriority(leads.filter(l=>l.team===t))}));
 
@@ -1076,6 +1084,13 @@ function updateThemeIcon(){
 
 // Resize handler
 window.addEventListener('resize',updateStickySubmit);
+
+// バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
+const APP_VERSION='6';
+if(localStorage.getItem('exh-app-version')!==APP_VERSION){
+  localStorage.setItem('exh-app-version',APP_VERSION);
+  if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
+}
 
 // Init
 const savedTheme=localStorage.getItem('exh-theme');
