@@ -405,7 +405,7 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script>
-const TEAM = ['菅野','木下','プロイ','松尾','宇井'];
+const TEAM = ['菅野','木下','プロイ','松尾','宇井','板橋'];
 const INDUSTRIES = ['製造/素材','情報通信/IT','サービス/人材','金融/保険','不動産/建設','小売/流通','医療/福祉','教育/研究','広告/メディア','コンサル','その他'];
 const IND_KEYS = {
   '製造/素材':['製造','工業','機械','電機','素材','化学','金属','メーカー','鉄鋼','繊維','プラスチック','部品','精密'],
@@ -1088,7 +1088,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='9';
+const APP_VERSION='10';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
