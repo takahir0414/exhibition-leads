@@ -501,29 +501,9 @@ function load(){
       ...l
     }));
     save();
-  }else{seedSample();save()}
+  }else{state.leads=[];save()}
 }
 
-function seedSample(){
-  const s=[
-    {name:'田中太郎',company:'ABCメーカー株式会社',department:'DX推進部',position:'部長',email:'tanaka@abc-maker.co.jp',phone:'03-1234-5678',industry:'製造/素材',team:'菅野',priority:'A',notes:'AI導入に強い関心。来月の個別MTGを希望。',unansweredQ:'導入後のサポート体制について',date:'2026-07-28',followupStatus:'連絡済み',contactMethod:'メール',contactedDate:'2026-07-29'},
-    {name:'佐藤花子',company:'テックソリューションズ',department:'営業部',position:'課長',email:'sato@techsol.jp',phone:'03-2345-6789',industry:'情報通信/IT',team:'木下',priority:'B',notes:'既存のCRMからの乗り換えを検討中。',unansweredQ:'',date:'2026-07-19',followupStatus:'未着手'},
-    {name:'鈴木一郎',company:'グローバル人材サービス',department:'事業企画',position:'マネージャー',email:'suzuki@global-hr.co.jp',phone:'03-3456-7890',industry:'サービス/人材',team:'プロイ',priority:'A',notes:'研修プログラムの提案を求められた。資料送付予定。',unansweredQ:'他社との差別化ポイントを具体的に',date:'2026-07-29',followupStatus:'日程確定',contactMethod:'電話',contactedDate:'2026-07-30',meetingType:'ZOOM',meetingDate:'2026-08-05'},
-    {name:'高橋美咲',company:'メディカルイノベーション',department:'情報システム部',position:'主任',email:'takahashi@med-innov.co.jp',phone:'06-4567-8901',industry:'医療/福祉',team:'松尾',priority:'B',notes:'電子カルテ連携について質問あり。',unansweredQ:'HL7 FHIR対応の可否',date:'2026-07-29',followupStatus:'未着手'},
-    {name:'山田健太',company:'デジタルクラウド株式会社',department:'開発部',position:'エンジニア',email:'yamada@digi-cloud.jp',phone:'03-5678-9012',industry:'情報通信/IT',team:'宇井',priority:'C',notes:'技術的な情報収集目的。',unansweredQ:'',date:'2026-07-30',followupStatus:'完了',followed:true,contactMethod:'電話',contactedDate:'2026-07-31',meetingType:'対面',meetingDate:'2026-08-01'},
-    {name:'中村洋平',company:'東京建設工業',department:'経営企画室',position:'室長',email:'nakamura@tokyo-kensetsu.jp',phone:'03-6789-0123',industry:'不動産/建設',team:'菅野',priority:'B',notes:'現場のDX化に関心。',unansweredQ:'建設現場での通信環境が悪い場合のオフライン対応',date:'2026-07-30',followupStatus:'未着手'},
-    {name:'小林真理',company:'ファイナンスグループ',department:'人事部',position:'次長',email:'kobayashi@fin-group.co.jp',phone:'03-7890-1234',industry:'金融/保険',team:'木下',priority:'A',notes:'新入社員研修へのAI活用。予算確保済みとのこと。',unansweredQ:'',date:'2026-07-30',followupStatus:'連絡済み',contactMethod:'電話',contactedDate:'2026-07-31'},
-    {name:'渡辺健一',company:'合同会社ネクストギア',department:'技術部',position:'マネージャー',email:'watanabe@nextgear.jp',phone:'03-8901-2345',industry:'情報通信/IT',team:'菅野',priority:'C',notes:'情報収集段階。次回展示会にも来場予定とのこと。',unansweredQ:'',date:'2026-07-25',followupStatus:'未着手'},
-    {name:'伊藤久美子',company:'東西物流株式会社',department:'物流企画部',position:'課長',email:'ito@tozai-butsuryu.co.jp',phone:'06-2345-6789',industry:'小売/流通',team:'木下',priority:'C',notes:'倉庫管理システムとの連携に興味。',unansweredQ:'',date:'2026-07-29',followupStatus:'日程確定',contactMethod:'メール',contactedDate:'2026-07-30',meetingType:'ZOOM',meetingDate:'2026-08-06'},
-    {name:'加藤誠',company:'加藤精密工業株式会社',department:'製造部',position:'部長',email:'kato@kato-seimitsu.co.jp',phone:'052-345-6789',industry:'製造/素材',team:'プロイ',priority:'B',notes:'工場の検品工程へのAI活用を検討中。',unansweredQ:'導入までの標準的な期間はどれくらいか',date:'2026-07-30',followupStatus:'未着手'},
-    {name:'松本さゆり',company:'さゆり広告社',department:'企画制作部',position:'ディレクター',email:'matsumoto@sayuri-ad.co.jp',phone:'03-9012-3456',industry:'広告/メディア',team:'プロイ',priority:'C',notes:'クリエイティブ制作の効率化に関心。',unansweredQ:'',date:'2026-07-28',followupStatus:'連絡済み',contactMethod:'電話',contactedDate:'2026-07-29'},
-    {name:'井上直樹',company:'井上不動産株式会社',department:'営業企画部',position:'部長',email:'inoue@inoue-fudosan.jp',phone:'03-0123-4567',industry:'不動産/建設',team:'松尾',priority:'A',notes:'物件管理業務の自動化に強い関心。予算あり。',unansweredQ:'既存の基幹システムとの連携可否',date:'2026-07-28',followupStatus:'未着手'},
-    {name:'木村あゆみ',company:'あゆみ教育研究所',department:'研究開発部',position:'主任研究員',email:'kimura@ayumi-edu.jp',phone:'03-1122-3344',industry:'教育/研究',team:'松尾',priority:'C',notes:'教材開発への活用を検討。',unansweredQ:'',date:'2026-07-29',followupStatus:'完了',followed:true,contactMethod:'メール',contactedDate:'2026-07-30',meetingType:'対面',meetingDate:'2026-08-02'},
-    {name:'林大輔',company:'大輔コンサルティング',department:'経営戦略室',position:'シニアコンサルタント',email:'hayashi@daisuke-consul.jp',phone:'03-2233-4455',industry:'コンサル',team:'宇井',priority:'B',notes:'クライアント企業への提案に活用したいとのこと。',unansweredQ:'',date:'2026-07-30',followupStatus:'連絡済み',contactMethod:'メール',contactedDate:'2026-07-31'},
-    {name:'清水由紀',company:'清水金融株式会社',department:'デジタル戦略部',position:'次長',email:'shimizu@shimizu-kinyu.co.jp',phone:'03-3344-5566',industry:'金融/保険',team:'宇井',priority:'A',notes:'コールセンター業務の効率化に強い関心。役員決裁待ち。',unansweredQ:'セキュリティ認証の取得状況について',date:'2026-07-28',followupStatus:'日程確定',contactMethod:'電話',contactedDate:'2026-07-29',meetingType:'対面',meetingDate:'2026-08-04'},
-  ];
-  state.leads=s.map(l=>({id:uid(),address:'',nextAction:'',followed:false,photo:null,unansweredQ:'',followupStatus:'未着手',contactMethod:'',contactedDate:'',meetingType:'',meetingDate:'',...l}));
-}
 
 function resizeImg(file){
   return new Promise(res=>{
@@ -1093,10 +1073,16 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='11';
+const APP_VERSION='12';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
+}
+
+// デモ用サンプルデータを一度だけ自動削除する（本番運用開始時のリセット）
+if(!localStorage.getItem('exh-demo-cleared-v1')){
+  localStorage.removeItem('exh-leads');
+  localStorage.setItem('exh-demo-cleared-v1','1');
 }
 
 // Init
