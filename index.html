@@ -490,18 +490,58 @@ function photoOrIcon(l){return l.photo?`<img src="${l.photo}" alt="">`:'<svg vie
 
 const state={tab:'dashboard',leads:[],filters:{q:'',team:'',priority:'',industry:''},regPhoto:null,regOcrStatus:'idle',regExtracted:{company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''}};
 
-function save(){localStorage.setItem('exh-leads',JSON.stringify(state.leads))}
-function load(){
+function migrateFields(l){
+  return {
+    id:uid(),address:'',nextAction:'',followed:false,photo:null,unansweredQ:'',
+    followupStatus:'未着手',contactMethod:'',contactedDate:'',meetingType:'',meetingDate:'',
+    ...l
+  };
+}
+
+function loadLocal(){
   const d=localStorage.getItem('exh-leads');
-  if(d){
-    // 過去バージョンで保存されたリードに新フィールドを補完する（データ移行）
-    state.leads=JSON.parse(d).map(l=>({
-      id:uid(),address:'',nextAction:'',followed:false,photo:null,unansweredQ:'',
-      followupStatus:'未着手',contactMethod:'',contactedDate:'',meetingType:'',meetingDate:'',
-      ...l
-    }));
-    save();
-  }else{state.leads=[];save()}
+  return d?JSON.parse(d).map(migrateFields):[];
+}
+
+function save(){
+  localStorage.setItem('exh-leads',JSON.stringify(state.leads));
+  fetch('/api/leads',{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({leads:state.leads})
+  }).catch(()=>{});
+}
+
+// サーバーの最新データを取得し、このデバイスにしかないローカルデータ（未共有分）があれば
+// マージしてサーバーへ書き戻す。オフライン時はローカルデータのみで動作する。
+async function syncFromServer(){
+  const local=loadLocal();
+  try{
+    const res=await fetch('/api/leads');
+    if(!res.ok)throw new Error('fetch failed');
+    const data=await res.json();
+    const serverLeads=(data.leads||[]).map(migrateFields);
+    const serverIds=new Set(serverLeads.map(l=>l.id));
+    const localOnly=local.filter(l=>!serverIds.has(l.id));
+    const merged=[...serverLeads,...localOnly];
+    state.leads=merged;
+    localStorage.setItem('exh-leads',JSON.stringify(merged));
+    if(localOnly.length){
+      await fetch('/api/leads',{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({leads:merged})
+      }).catch(()=>{});
+    }
+    return true;
+  }catch(e){
+    state.leads=local;
+    return false;
+  }
+}
+
+function load(){
+  state.leads=loadLocal();
 }
 
 
@@ -1073,7 +1113,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='12';
+const APP_VERSION='13';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
@@ -1092,4 +1132,11 @@ updateThemeIcon();
 load();
 render();
 updateStickySubmit();
+syncFromServer().then(()=>{render();updateStickySubmit()});
+
+// 他のメンバーが登録したリードを定期的に取り込む（入力中のフォームは邪魔しない）
+setInterval(async()=>{
+  const ok=await syncFromServer();
+  if(ok&&state.tab!=='register'){render()}
+},15000);
 </script>
