@@ -69,9 +69,15 @@ module.exports = async (req, res) => {
         res.status(400).json({ error: 'lead with id is required' });
         return;
       }
+      // 一度削除されたIDは、まだ古いデータをローカルに持っている別端末が
+      // 誤って再送信してきても復活させない（新規リードのIDは常にuid()で
+      // 新規発行されるため、正規の再登録がこの経路にぶつかることはない）。
+      const isDeleted = await redisCall(url, token, ['SISMEMBER', DELETED_KEY, lead.id]);
+      if (isDeleted) {
+        res.status(200).json({ ok: true, ignored: true });
+        return;
+      }
       await redisCall(url, token, ['HSET', LEADS_KEY, lead.id, JSON.stringify(lead)]);
-      // 再登録された場合は削除済み扱いを解除する
-      await redisCall(url, token, ['SREM', DELETED_KEY, lead.id]);
       res.status(200).json({ ok: true });
       return;
     }

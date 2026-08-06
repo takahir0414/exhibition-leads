@@ -506,6 +506,46 @@ async function runOcr(photoDataUrl){
   renderRegister();
   restoreRegFormState(saved);
 }
+
+// 編集モーダルで、保存済みの名刺写真を使ってOCRを再実行する。
+// すでに手入力されている項目は上書きせず、空欄だけを埋める。
+async function rescanPhoto(id){
+  const lead=state.leads.find(x=>x.id===id);
+  const btn=document.getElementById('rescanBtn');
+  const statusEl=document.getElementById('rescanStatus');
+  if(!lead||!lead.photo){toast('写真がありません');return}
+  if(btn)btn.disabled=true;
+  if(statusEl){statusEl.style.display='flex';statusEl.classList.remove('ocr-error');statusEl.innerHTML='<div class="ocr-spinner"></div>読み取り中...'}
+  const mimeType=lead.photo.match(/^data:([^;]+);/)?.[1]||'image/jpeg';
+  const base64=lead.photo.split(',')[1];
+  const MAX_RETRIES=2;
+  try{
+    let result=await callOcr(base64,mimeType);
+    let attempt=0;
+    while(result.status===429&&attempt<MAX_RETRIES){
+      attempt++;
+      const wait=Math.min(Math.max(result.data.retryAfter||20,5),30);
+      if(statusEl)statusEl.innerHTML=`<div class="ocr-spinner"></div>混み合っています。${wait}秒待って再試行します...`;
+      await sleep(wait*1000);
+      if(statusEl)statusEl.innerHTML='<div class="ocr-spinner"></div>読み取り中...';
+      result=await callOcr(base64,mimeType);
+    }
+    const {ok,data}=result;
+    if(!ok||data.error)throw new Error(data.error||'OCR failed');
+    const fieldMap={editName:data.name,editCompany:data.company,editDept:data.department,editPosition:data.position,editPhone:data.phone,editEmail:data.email,editAddress:data.address};
+    let filled=0;
+    Object.entries(fieldMap).forEach(([elId,val])=>{
+      const inp=document.getElementById(elId);
+      if(inp&&!inp.value.trim()&&val){inp.value=val;filled++}
+    });
+    if(statusEl){statusEl.style.display='none'}
+    toast(filled?`${filled}件の空欄に反映しました`:'読み取りましたが、新しい情報はありませんでした');
+  }catch(e){
+    if(statusEl){statusEl.classList.add('ocr-error');statusEl.innerHTML='読み取りに失敗しました'}
+  }
+  if(btn)btn.disabled=false;
+}
+
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function today(){return new Date().toISOString().slice(0,10)}
 function isMobile(){return window.innerWidth<=600}
@@ -848,7 +888,7 @@ function renderLeads(){
           <div class="lead-card-top">
             <div class="lead-card-photo">${photoOrIcon(l)}</div>
             <div><div class="lead-card-name">${esc(l.name)}</div><div class="lead-card-company">${esc(l.company)}${l.position?' / '+esc(l.position):''}</div></div>
-            <div class="priority-badge --${l.priority.toLowerCase()}" style="margin-left:auto">${l.priority}</div>
+            <div class="priority-badge --${(l.priority||'c').toLowerCase()}" style="margin-left:auto">${l.priority||'-'}</div>
           </div>
           <div class="lead-card-badges"><span class="badge badge-industry">${esc(l.industry)}</span><span class="badge badge-team">${esc(l.team)}</span></div>
           ${l.notes?`<div class="lead-card-notes">${esc(l.notes)}</div>`:''}
@@ -952,7 +992,7 @@ function renderFollowup(){
             <div class="followup-row" data-action="view" data-id="${l.id}">
               <div class="followup-row-photo">${photoOrIcon(l)}</div>
               <div class="followup-row-name">${esc(l.name||l.company||'氏名未入力')}</div>
-              <div class="priority-badge --${l.priority.toLowerCase()}">${l.priority}</div>
+              <div class="priority-badge --${(l.priority||'c').toLowerCase()}">${l.priority||'-'}</div>
               ${stageBadgeCompact(l)}
             </div>
           `).join(''):'<div class="followup-column-empty">担当リードなし</div>'}
@@ -978,7 +1018,7 @@ function showModal(lead,mode='view'){
         ${lead.address?`<div class="detail-label">住所</div><div class="detail-value">${esc(lead.address)}</div>`:''}
         <div class="detail-label">業種</div><div class="detail-value"><span class="badge badge-industry">${esc(lead.industry)}</span></div>
         <div class="detail-label">担当者</div><div class="detail-value"><span class="badge badge-team">${esc(lead.team)}</span></div>
-        <div class="detail-label">重要度</div><div class="detail-value"><span class="priority-badge --${lead.priority.toLowerCase()}">${lead.priority}</span></div>
+        <div class="detail-label">重要度</div><div class="detail-value"><span class="priority-badge --${(lead.priority||'c').toLowerCase()}">${lead.priority||'-'}</span></div>
         ${lead.notes?`<div class="detail-label">備考</div><div class="detail-value">${esc(lead.notes)}</div>`:''}
         ${lead.unansweredQ?`<div class="detail-label">未回答の質問</div><div class="detail-value" style="color:var(--pb)">${esc(lead.unansweredQ)}</div>`:''}
         ${lead.nextAction?`<div class="detail-label">次のアクション</div><div class="detail-value">${esc(lead.nextAction)}</div>`:''}
@@ -1032,6 +1072,13 @@ function showModal(lead,mode='view'){
   } else {
     modal.innerHTML=`
       <div class="modal-header"><h2>リード編集</h2><button class="modal-close" data-action="closeModal">&times;</button></div>
+      ${lead.photo?`
+        <div style="margin-bottom:16px">
+          <img class="modal-photo" src="${lead.photo}" alt="名刺" style="max-height:160px">
+          <button class="btn btn-outline btn-sm" data-action="rescanPhoto" data-id="${lead.id}" id="rescanBtn" style="margin-top:8px;width:100%">名刺写真から再読み込み</button>
+          <div id="rescanStatus" class="ocr-status" style="display:none;margin-top:8px"></div>
+        </div>
+      `:''}
       <div class="form-grid">
         <div class="form-group"><label class="form-label">氏名</label><input id="editName" value="${esc(lead.name)}"></div>
         <div class="form-group"><label class="form-label">会社名</label><input id="editCompany" value="${esc(lead.company)}"></div>
@@ -1099,6 +1146,7 @@ document.addEventListener('click',e=>{
   else if(action==='export')exportCSV();
   else if(action==='goRegister')switchTab('register');
   else if(action==='editLead'){const l=state.leads.find(x=>x.id===id);if(l)showModal(l,'edit')}
+  else if(action==='rescanPhoto')rescanPhoto(id);
   else if(action==='saveEdit'){
     const l=state.leads.find(x=>x.id===id);
     if(l){
@@ -1170,7 +1218,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='17';
+const APP_VERSION='18';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
