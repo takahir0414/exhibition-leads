@@ -1167,7 +1167,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='15';
+const APP_VERSION='16';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
@@ -1193,4 +1193,18 @@ setInterval(async()=>{
   const ok=await syncFromServer();
   if(ok&&state.tab!=='register'){render()}
 },15000);
+
+// スマホ（特にAndroid）は画面ロックやアプリ切替でバックグラウンドタブの
+// タイマーが止まる（間引かれる）ため、setIntervalだけでは開きっぱなしの
+// 画面に戻ってきても更新されないことがある。画面に戻ってきた瞬間に
+// 強制的に同期し直す。
+async function refreshOnReturn(){
+  const ok=await syncFromServer();
+  if(ok&&state.tab!=='register')render();
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')refreshOnReturn();
+});
+window.addEventListener('focus',refreshOnReturn);
+window.addEventListener('pageshow',refreshOnReturn);
 </script>
