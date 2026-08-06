@@ -30,6 +30,11 @@ async function redisCall(url, token, command) {
 }
 
 const LEADS_KEY = 'exhibition-leads:hash:v1';
+// 削除済みIDを記録しておく（削除の目印=tombstone）。これがないと、
+// ある端末で削除した直後に、まだ削除前のデータをローカルに持っている
+// 別の端末が同期処理で「サーバーにない＝未送信」と誤認し、削除した
+// はずのリードを復活させてしまう。
+const DELETED_KEY = 'exhibition-leads:deleted:v1';
 
 module.exports = async (req, res) => {
   const { url, token } = getRedisConfig();
@@ -40,7 +45,10 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'GET') {
-      const raw = await redisCall(url, token, ['HGETALL', LEADS_KEY]);
+      const [raw, deletedIds] = await Promise.all([
+        redisCall(url, token, ['HGETALL', LEADS_KEY]),
+        redisCall(url, token, ['SMEMBERS', DELETED_KEY]),
+      ]);
       const leads = [];
       if (Array.isArray(raw)) {
         for (let i = 0; i < raw.length; i += 2) {
@@ -51,7 +59,7 @@ module.exports = async (req, res) => {
           }
         }
       }
-      res.status(200).json({ leads });
+      res.status(200).json({ leads, deletedIds: deletedIds || [] });
       return;
     }
 
@@ -62,6 +70,8 @@ module.exports = async (req, res) => {
         return;
       }
       await redisCall(url, token, ['HSET', LEADS_KEY, lead.id, JSON.stringify(lead)]);
+      // 再登録された場合は削除済み扱いを解除する
+      await redisCall(url, token, ['SREM', DELETED_KEY, lead.id]);
       res.status(200).json({ ok: true });
       return;
     }
@@ -73,6 +83,7 @@ module.exports = async (req, res) => {
         return;
       }
       await redisCall(url, token, ['HDEL', LEADS_KEY, id]);
+      await redisCall(url, token, ['SADD', DELETED_KEY, id]);
       res.status(200).json({ ok: true });
       return;
     }

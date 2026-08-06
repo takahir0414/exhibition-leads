@@ -567,13 +567,16 @@ async function syncFromServer(){
     const res=await fetch('/api/leads');
     if(!res.ok)throw new Error('fetch failed');
     const data=await res.json();
+    const deletedIds=new Set(data.deletedIds||[]);
     const localById=new Map(local.map(l=>[l.id,l]));
     const serverLeads=(data.leads||[]).map(migrateFields).map(sl=>{
       const ll=localById.get(sl.id);
       return (ll&&ll.photo&&!sl.photo)?{...sl,photo:ll.photo}:sl;
     });
     const serverIds=new Set(serverLeads.map(l=>l.id));
-    const localOnly=local.filter(l=>!serverIds.has(l.id));
+    // 他端末で削除済みのリードは、このデバイスにローカルキャッシュが
+    // 残っていても復活させない
+    const localOnly=local.filter(l=>!serverIds.has(l.id)&&!deletedIds.has(l.id));
     const merged=[...serverLeads,...localOnly];
     state.leads=merged;
     save();
@@ -1167,7 +1170,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='16';
+const APP_VERSION='17';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
