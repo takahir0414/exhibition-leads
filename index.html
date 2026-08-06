@@ -503,34 +503,60 @@ function loadLocal(){
   return d?JSON.parse(d).map(migrateFields):[];
 }
 
+// leads配列全体をまとめて送信すると、件数が増えるほどリクエストが肥大化し
+// 一定件数（写真データ込みで数十件）を超えた時点でサーバー側の上限に達して
+// 同期が失敗してしまう。そのため1件ずつサーバーへ送る方式にしている。
+// 写真はサイズが大きいためサーバーには送らず、各端末のローカルにのみ保持する
+// （共有したいのは氏名・会社名・連絡先などのテキスト情報のため）。
+function stripPhoto(lead){
+  const {photo,...rest}=lead;
+  return rest;
+}
+
 function save(){
-  localStorage.setItem('exh-leads',JSON.stringify(state.leads));
+  try{
+    localStorage.setItem('exh-leads',JSON.stringify(state.leads));
+  }catch(e){
+    console.warn('localStorage save failed',e);
+  }
+}
+
+function syncLeadToServer(lead){
   fetch('/api/leads',{
-    method:'PUT',
+    method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({leads:state.leads})
+    body:JSON.stringify({lead:stripPhoto(lead)})
   }).catch(()=>{});
 }
 
+function deleteLeadFromServer(id){
+  fetch('/api/leads?id='+encodeURIComponent(id),{method:'DELETE'}).catch(()=>{});
+}
+
 // サーバーの最新データを取得し、このデバイスにしかないローカルデータ（未共有分）があれば
-// マージしてサーバーへ書き戻す。オフライン時はローカルデータのみで動作する。
+// 1件ずつサーバーへ書き戻す。写真は各端末のローカルデータを優先して保持する。
+// オフライン時はローカルデータのみで動作する。
 async function syncFromServer(){
   const local=loadLocal();
   try{
     const res=await fetch('/api/leads');
     if(!res.ok)throw new Error('fetch failed');
     const data=await res.json();
-    const serverLeads=(data.leads||[]).map(migrateFields);
+    const localById=new Map(local.map(l=>[l.id,l]));
+    const serverLeads=(data.leads||[]).map(migrateFields).map(sl=>{
+      const ll=localById.get(sl.id);
+      return (ll&&ll.photo&&!sl.photo)?{...sl,photo:ll.photo}:sl;
+    });
     const serverIds=new Set(serverLeads.map(l=>l.id));
     const localOnly=local.filter(l=>!serverIds.has(l.id));
     const merged=[...serverLeads,...localOnly];
     state.leads=merged;
-    localStorage.setItem('exh-leads',JSON.stringify(merged));
-    if(localOnly.length){
+    save();
+    for(const l of localOnly){
       await fetch('/api/leads',{
-        method:'PUT',
+        method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({leads:merged})
+        body:JSON.stringify({lead:stripPhoto(l)})
       }).catch(()=>{});
     }
     return true;
@@ -550,12 +576,12 @@ function resizeImg(file){
     const img=new Image();
     img.onload=()=>{
       const c=document.createElement('canvas');
-      const MAX=600;
+      const MAX=480;
       let w=img.width,h=img.height;
       if(w>MAX){h=h*MAX/w;w=MAX}
       c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
-      res(c.toDataURL('image/jpeg',.7));
+      res(c.toDataURL('image/jpeg',.55));
       URL.revokeObjectURL(img.src);
     };
     img.src=URL.createObjectURL(file);
@@ -759,7 +785,7 @@ function saveLead(){
     nextAction:'',followed:false,photo:state.regPhoto,date:today(),
     followupStatus:'未着手',contactMethod:'',contactedDate:'',meetingType:'',meetingDate:''
   };
-  state.leads.unshift(lead);save();
+  state.leads.unshift(lead);save();syncLeadToServer(lead);
   state.regPhoto=null;
   state.regExtracted={company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''};
   state.regOcrStatus='idle';
@@ -1058,10 +1084,10 @@ document.addEventListener('click',e=>{
       l.notes=document.getElementById('editNotes')?.value.trim()||'';
       l.unansweredQ=document.getElementById('editUnansweredQ')?.value.trim()||'';
       l.nextAction=document.getElementById('editAction')?.value.trim()||'';
-      save();closeModal();render();toast('更新しました');
+      save();syncLeadToServer(l);closeModal();render();toast('更新しました');
     }
   }
-  else if(action==='deleteLead'){if(confirm('このリードを削除しますか？')){state.leads=state.leads.filter(x=>x.id!==id);save();closeModal();render();toast('削除しました')}}
+  else if(action==='deleteLead'){if(confirm('このリードを削除しますか？')){state.leads=state.leads.filter(x=>x.id!==id);save();deleteLeadFromServer(id);closeModal();render();toast('削除しました')}}
   else if(action==='zoomPhoto')btn.classList.toggle('zoomed');
   else if(action==='openContactModal'){const l=state.leads.find(x=>x.id===id);if(l)showModal(l,'followup-contact')}
   else if(action==='openMeetingModal'){const l=state.leads.find(x=>x.id===id);if(l)showModal(l,'followup-meeting')}
@@ -1069,7 +1095,7 @@ document.addEventListener('click',e=>{
     const l=state.leads.find(x=>x.id===id);
     const m=document.querySelector('#modal input[name="contactMethod"]:checked');
     if(!m){toast('連絡方法を選択してください');return}
-    if(l){l.contactMethod=m.value;l.contactedDate=today();l.followupStatus='連絡済み';save();closeModal();render();toast('記録しました')}
+    if(l){l.contactMethod=m.value;l.contactedDate=today();l.followupStatus='連絡済み';save();syncLeadToServer(l);closeModal();render();toast('記録しました')}
   }
   else if(action==='saveMeeting'){
     const l=state.leads.find(x=>x.id===id);
@@ -1077,11 +1103,11 @@ document.addEventListener('click',e=>{
     const d=document.getElementById('meetingDateInput')?.value;
     if(!t){toast('面談形式を選択してください');return}
     if(!d){toast('日付を入力してください');return}
-    if(l){l.meetingType=t.value;l.meetingDate=d;l.followupStatus='日程確定';save();closeModal();render();toast('日程を確定しました')}
+    if(l){l.meetingType=t.value;l.meetingDate=d;l.followupStatus='日程確定';save();syncLeadToServer(l);closeModal();render();toast('日程を確定しました')}
   }
   else if(action==='markDone'){
     const l=state.leads.find(x=>x.id===id);
-    if(l){l.followupStatus='完了';l.followed=true;save();closeModal();render();toast('完了にしました')}
+    if(l){l.followupStatus='完了';l.followed=true;save();syncLeadToServer(l);closeModal();render();toast('完了にしました')}
   }
 });
 
@@ -1113,7 +1139,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='13';
+const APP_VERSION='14';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
