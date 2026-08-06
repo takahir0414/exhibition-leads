@@ -90,13 +90,17 @@ module.exports = async (req, res) => {
 }
 読み取れない項目は空文字にしてください。`;
 
-  try {
+  // モデルごとに無料枠が別枠になっているため、1つのモデルの無料枠(1日分など)を
+  // 使い切っても、別モデルであれば引き続き利用できることがある。
+  // クォータ超過の場合は次のモデルへ自動的にフォールバックする。
+  const MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-lite-latest'];
+
+  async function callGemini(model) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
-    let geminiRes;
     try {
-      geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -111,29 +115,47 @@ module.exports = async (req, res) => {
           signal: controller.signal,
         }
       );
+      const data = await geminiRes.json();
+      return { ok: geminiRes.ok, status: geminiRes.status, data };
+    } catch (e) {
+      if (e.name === 'AbortError') return { ok: false, status: 429, timeout: true, data: {} };
+      throw e;
     } finally {
       clearTimeout(timeout);
     }
+  }
 
-    const data = await geminiRes.json();
-    if (!geminiRes.ok) {
-      // 無料枠のレート制限に達した場合は429で返し、待ち時間をクライアントに伝える
-      if (geminiRes.status === 429 || data.error?.status === 'RESOURCE_EXHAUSTED') {
-        const retryInfo = data.error?.details?.find(d => d.retryDelay);
-        const secondsMatch = (data.error?.message || '').match(/retry in ([\d.]+)s/i);
-        const retryAfter = retryInfo
+  function isQuotaError(result) {
+    return result.status === 429 || result.data?.error?.status === 'RESOURCE_EXHAUSTED';
+  }
+
+  try {
+    let result;
+    for (let i = 0; i < MODELS.length; i++) {
+      result = await callGemini(MODELS[i]);
+      if (result.ok) break;
+      if (!isQuotaError(result)) break; // クォータ以外のエラーはフォールバックしても解決しないので打ち切る
+    }
+
+    if (!result.ok) {
+      if (isQuotaError(result)) {
+        const retryInfo = result.data?.error?.details?.find(d => d.retryDelay);
+        const secondsMatch = (result.data?.error?.message || '').match(/retry in ([\d.]+)s/i);
+        const retryAfter = result.timeout
+          ? 10
+          : retryInfo
           ? parseFloat(retryInfo.retryDelay)
           : secondsMatch
           ? parseFloat(secondsMatch[1])
           : 20;
-        res.status(429).json({ error: data.error?.message || 'rate limited', retryAfter });
+        res.status(429).json({ error: result.data?.error?.message || 'rate limited', retryAfter });
         return;
       }
-      res.status(502).json({ error: data.error?.message || 'Gemini API error' });
+      res.status(502).json({ error: result.data?.error?.message || 'Gemini API error' });
       return;
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = result.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       res.status(502).json({ error: 'no JSON in response' });
@@ -143,10 +165,6 @@ module.exports = async (req, res) => {
     const parsed = JSON.parse(jsonMatch[0]);
     res.status(200).json(parsed);
   } catch (e) {
-    if (e.name === 'AbortError') {
-      res.status(429).json({ error: 'timeout(混雑中)', retryAfter: 10 });
-      return;
-    }
     res.status(500).json({ error: e.message });
   }
 };
