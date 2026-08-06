@@ -47,6 +47,18 @@ module.exports = async (req, res) => {
 
     const data = await geminiRes.json();
     if (!geminiRes.ok) {
+      // 無料枠のレート制限に達した場合は429で返し、待ち時間をクライアントに伝える
+      if (geminiRes.status === 429 || data.error?.status === 'RESOURCE_EXHAUSTED') {
+        const retryInfo = data.error?.details?.find(d => d.retryDelay);
+        const secondsMatch = (data.error?.message || '').match(/retry in ([\d.]+)s/i);
+        const retryAfter = retryInfo
+          ? parseFloat(retryInfo.retryDelay)
+          : secondsMatch
+          ? parseFloat(secondsMatch[1])
+          : 20;
+        res.status(429).json({ error: data.error?.message || 'rate limited', retryAfter });
+        return;
+      }
       res.status(502).json({ error: data.error?.message || 'Gemini API error' });
       return;
     }

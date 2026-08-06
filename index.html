@@ -447,21 +447,46 @@ function restoreRegFormState(s){
   }
 }
 
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+async function callOcr(base64,mimeType){
+  const resp=await fetch('/api/ocr',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({image:base64,mimeType})
+  });
+  const data=await resp.json();
+  return {ok:resp.ok,status:resp.status,data};
+}
+
+// 読み取りが混み合っている（無料枠のレート制限）場合は少し待って自動で再試行する
 async function runOcr(photoDataUrl){
   let saved=captureRegFormState();
   state.regOcrStatus='running';
   renderRegister();
   restoreRegFormState(saved);
+  const mimeType=photoDataUrl.match(/^data:([^;]+);/)?.[1]||'image/jpeg';
+  const base64=photoDataUrl.split(',')[1];
+  const MAX_RETRIES=2;
   try{
-    const mimeType=photoDataUrl.match(/^data:([^;]+);/)?.[1]||'image/jpeg';
-    const base64=photoDataUrl.split(',')[1];
-    const resp=await fetch('/api/ocr',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({image:base64,mimeType})
-    });
-    const data=await resp.json();
-    if(!resp.ok||data.error)throw new Error(data.error||'OCR failed');
+    let result=await callOcr(base64,mimeType);
+    let attempt=0;
+    while(result.status===429&&attempt<MAX_RETRIES){
+      attempt++;
+      state.regOcrStatus='retrying';
+      saved=captureRegFormState();
+      renderRegister();
+      restoreRegFormState(saved);
+      const wait=Math.min(Math.max(result.data.retryAfter||20,5),30);
+      await sleep(wait*1000);
+      state.regOcrStatus='running';
+      saved=captureRegFormState();
+      renderRegister();
+      restoreRegFormState(saved);
+      result=await callOcr(base64,mimeType);
+    }
+    const {ok,data}=result;
+    if(!ok||data.error)throw new Error(data.error||'OCR failed');
     const company=data.company||'';
     state.regExtracted={
       company,
@@ -691,6 +716,9 @@ function renderRegister(){
       </div>
       ${state.regPhoto&&state.regOcrStatus==='running'?`
         <div class="ocr-status"><div class="ocr-spinner"></div>名刺を読み取り中...</div>
+      `:''}
+      ${state.regPhoto&&state.regOcrStatus==='retrying'?`
+        <div class="ocr-status"><div class="ocr-spinner"></div>混み合っています。少し待って自動で再試行します...</div>
       `:''}
       ${state.regPhoto&&state.regOcrStatus==='error'?`
         <div class="ocr-status ocr-error">読み取りに失敗しました。下の項目に手入力してください。</div>
@@ -1139,7 +1167,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='14';
+const APP_VERSION='15';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
