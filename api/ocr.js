@@ -92,8 +92,9 @@ module.exports = async (req, res) => {
 
   // モデルごとに無料枠が別枠になっているため、1つのモデルの無料枠(1日分など)を
   // 使い切っても、別モデルであれば引き続き利用できることがある。
-  // クォータ超過の場合は次のモデルへ自動的にフォールバックする。
-  const MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-lite-latest'];
+  // gemini-flash-lite-latestが最も安定して無料枠が使えるため優先し、
+  // クォータ超過の場合のみ次のモデルへ自動的にフォールバックする。
+  const MODELS = ['gemini-flash-lite-latest', 'gemini-flash-latest'];
 
   async function callGemini(model) {
     const controller = new AbortController();
