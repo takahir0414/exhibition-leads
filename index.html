@@ -901,7 +901,18 @@ function renderLeads(){
       </div>`}`;
   el.querySelectorAll('[data-filter]').forEach(inp=>{
     inp.addEventListener(inp.tagName==='INPUT'?'input':'change',e=>{
-      state.filters[e.target.dataset.filter]=e.target.value;renderLeads();
+      const key=e.target.dataset.filter;
+      const cursor=e.target.selectionStart;
+      state.filters[key]=e.target.value;
+      renderLeads();
+      // input要素はrenderLeadsのたびに作り直されフォーカスが外れるため、
+      // 検索文字入力が1文字ずつしか反映されない不具合になっていた。
+      // 再描画後にフォーカスとカーソル位置を復元する。
+      const newInp=el.querySelector(`[data-filter="${key}"]`);
+      if(newInp&&newInp.tagName==='INPUT'){
+        newInp.focus();
+        newInp.setSelectionRange(cursor,cursor);
+      }
     });
   });
 }
@@ -1218,7 +1229,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='18';
+const APP_VERSION='19';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
