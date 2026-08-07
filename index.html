@@ -864,25 +864,24 @@ function saveLead(){
   renderRegister();
 }
 
-function renderLeads(){
-  const el=document.getElementById('sec-leads');
+// 検索ボックスの入力中に日本語IME変換が壊れて二重入力になっていた
+// 不具合の根本原因は、キー入力のたびに検索欄そのものをDOMごと
+// 作り直していたこと（IMEの変換セッションが強制的に中断される）。
+// 検索バー（input/select）は最初の1回だけ作り、以降は結果一覧
+// (#leadsResults)だけを差し替えるようにして、入力欄には一切触れない
+// ようにした。
+function renderLeadsList(){
+  const container=document.getElementById('leadsResults');
+  if(!container)return;
   const f=state.filters;
-  let filtered=state.leads.filter(l=>{
+  const filtered=state.leads.filter(l=>{
     if(f.q&&!`${l.name}${l.company}${l.notes}${l.unansweredQ||''}`.toLowerCase().includes(f.q.toLowerCase()))return false;
     if(f.team&&l.team!==f.team)return false;
     if(f.priority&&l.priority!==f.priority)return false;
     if(f.industry&&l.industry!==f.industry)return false;
     return true;
   });
-  el.innerHTML=`
-    <div class="filter-bar">
-      <input type="text" placeholder="検索（氏名・会社名・備考）" value="${esc(f.q)}" data-filter="q">
-      <select data-filter="team"><option value="">担当者</option>${TEAM.map(t=>`<option${f.team===t?' selected':''}>${t}</option>`).join('')}</select>
-      <select data-filter="priority"><option value="">重要度</option><option${f.priority==='A'?' selected':''}>A</option><option${f.priority==='B'?' selected':''}>B</option><option${f.priority==='C'?' selected':''}>C</option></select>
-      <select data-filter="industry"><option value="">業種</option>${INDUSTRIES.map(i=>`<option${f.industry===i?' selected':''}>${i}</option>`).join('')}</select>
-      <button class="btn btn-outline btn-sm export-btn" data-action="export">CSV出力</button>
-    </div>
-    ${filtered.length?`
+  container.innerHTML=filtered.length?`
       <div class="lead-grid">${filtered.map(l=>`
         <div class="lead-card" data-action="view" data-id="${l.id}">
           <div class="lead-card-top">
@@ -898,23 +897,31 @@ function renderLeads(){
     `:`<div class="empty-state">
         <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
         <p>リードが見つかりません</p><small>フィルタを変更するか、新しい名刺を登録してください</small>
-      </div>`}`;
-  el.querySelectorAll('[data-filter]').forEach(inp=>{
-    inp.addEventListener(inp.tagName==='INPUT'?'input':'change',e=>{
-      const key=e.target.dataset.filter;
-      const cursor=e.target.selectionStart;
-      state.filters[key]=e.target.value;
-      renderLeads();
-      // input要素はrenderLeadsのたびに作り直されフォーカスが外れるため、
-      // 検索文字入力が1文字ずつしか反映されない不具合になっていた。
-      // 再描画後にフォーカスとカーソル位置を復元する。
-      const newInp=el.querySelector(`[data-filter="${key}"]`);
-      if(newInp&&newInp.tagName==='INPUT'){
-        newInp.focus();
-        newInp.setSelectionRange(cursor,cursor);
-      }
+      </div>`;
+}
+
+function renderLeads(){
+  const el=document.getElementById('sec-leads');
+  const f=state.filters;
+  if(!el.querySelector('.filter-bar')){
+    el.innerHTML=`
+      <div class="filter-bar">
+        <input type="text" placeholder="検索（氏名・会社名・備考）" value="${esc(f.q)}" data-filter="q">
+        <select data-filter="team"><option value="">担当者</option>${TEAM.map(t=>`<option${f.team===t?' selected':''}>${t}</option>`).join('')}</select>
+        <select data-filter="priority"><option value="">重要度</option><option${f.priority==='A'?' selected':''}>A</option><option${f.priority==='B'?' selected':''}>B</option><option${f.priority==='C'?' selected':''}>C</option></select>
+        <select data-filter="industry"><option value="">業種</option>${INDUSTRIES.map(i=>`<option${f.industry===i?' selected':''}>${i}</option>`).join('')}</select>
+        <button class="btn btn-outline btn-sm export-btn" data-action="export">CSV出力</button>
+      </div>
+      <div id="leadsResults"></div>
+    `;
+    el.querySelectorAll('[data-filter]').forEach(inp=>{
+      inp.addEventListener(inp.tagName==='INPUT'?'input':'change',e=>{
+        state.filters[e.target.dataset.filter]=e.target.value;
+        renderLeadsList();
+      });
     });
-  });
+  }
+  renderLeadsList();
 }
 
 function stageLabel(status){
@@ -1229,7 +1236,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='20';
+const APP_VERSION='21';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
