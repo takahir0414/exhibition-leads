@@ -1229,7 +1229,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='19';
+const APP_VERSION='20';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
@@ -1250,10 +1250,17 @@ render();
 updateStickySubmit();
 syncFromServer().then(()=>{render();updateStickySubmit()});
 
+// 検索ボックスなどに入力中は、バックグラウンド同期のrender()で
+// フォーカス・カーソル位置が失われて入力が中断されないようにする
+function isTyping(){
+  const a=document.activeElement;
+  return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA');
+}
+
 // 他のメンバーが登録したリードを定期的に取り込む（入力中のフォームは邪魔しない）
 setInterval(async()=>{
   const ok=await syncFromServer();
-  if(ok&&state.tab!=='register'){render()}
+  if(ok&&state.tab!=='register'&&!isTyping()){render()}
 },15000);
 
 // スマホ（特にAndroid）は画面ロックやアプリ切替でバックグラウンドタブの
@@ -1262,7 +1269,7 @@ setInterval(async()=>{
 // 強制的に同期し直す。
 async function refreshOnReturn(){
   const ok=await syncFromServer();
-  if(ok&&state.tab!=='register')render();
+  if(ok&&state.tab!=='register'&&!isTyping())render();
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')refreshOnReturn();
