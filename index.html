@@ -547,6 +547,11 @@ async function rescanPhoto(id){
 }
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+// サーバーから取得するリードの並び順は保存方式の都合上、取得のたびに
+// 前後することがある。並び順が変わるたびに一覧が作り直され、閲覧・
+// スクロール中に表示が「流れる」ように見える不具合の原因になっていた
+// ため、常にID（登録順）で決定的にソートしてから表示する。
+function sortLeadsStable(arr){return[...arr].sort((a,b)=>a.id<b.id?1:a.id>b.id?-1:0)}
 function today(){return new Date().toISOString().slice(0,10)}
 function isMobile(){return window.innerWidth<=600}
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
@@ -699,7 +704,7 @@ function renderDash(){
   leads.forEach(l=>{teamCounts[l.team]=(teamCounts[l.team]||0)+1});
   const teamSorted=Object.entries(teamCounts).sort((x,y)=>y[1]-x[1]);
   const teamMax=teamSorted.length?teamSorted[0][1]:1;
-  const prioLeads=leads.filter(l=>l.priority==='A'&&!l.followed).slice(0,6);
+  const prioLeads=sortLeadsStable(leads.filter(l=>l.priority==='A'&&!l.followed)).slice(0,6);
 
   el.innerHTML=`
     ${renderOverdueAlertHtml(leads)}
@@ -874,13 +879,20 @@ function renderLeadsList(){
   const container=document.getElementById('leadsResults');
   if(!container)return;
   const f=state.filters;
-  const filtered=state.leads.filter(l=>{
+  const filtered=sortLeadsStable(state.leads.filter(l=>{
     if(f.q&&!`${l.name}${l.company}${l.notes}${l.unansweredQ||''}`.toLowerCase().includes(f.q.toLowerCase()))return false;
     if(f.team&&l.team!==f.team)return false;
     if(f.priority&&l.priority!==f.priority)return false;
     if(f.industry&&l.industry!==f.industry)return false;
     return true;
-  });
+  }));
+  // 中身が前回と変わっていなければ作り直さない。背景の自動更新の
+  // たびに画像を含むカードを全部再生成すると、ちらつきやスクロール
+  // 位置のずれ（「流れる」ように見える現象）につながるため。
+  const signature=filtered.map(l=>[l.id,l.name,l.company,l.position,l.priority,l.industry,l.team,l.notes,l.unansweredQ,l.date,!!l.photo].join('')).join('');
+  if(container.dataset.signature===signature)return;
+  container.dataset.signature=signature;
+  const scrollY=window.scrollY;
   container.innerHTML=filtered.length?`
       <div class="lead-grid">${filtered.map(l=>`
         <div class="lead-card" data-action="view" data-id="${l.id}">
@@ -898,6 +910,7 @@ function renderLeadsList(){
         <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
         <p>リードが見つかりません</p><small>フィルタを変更するか、新しい名刺を登録してください</small>
       </div>`;
+  window.scrollTo(0,scrollY);
 }
 
 function renderLeads(){
@@ -970,13 +983,18 @@ function followupActionHtml(l){
 
 function sortByFollowupPriority(arr){
   const order={'未着手':0,'連絡済み':1,'日程確定':2,'完了':3};
+  // 同順位（同じ日付など）になった場合はIDで決定的にタイブレークする。
+  // これがないと、同一条件のリードの並びが取得のたびに入れ替わり、
+  // 一覧が「流れる」ように見えてしまう。
   return[...arr].sort((a,b)=>{
     const oa=order[a.followupStatus]??0,ob=order[b.followupStatus]??0;
     if(oa!==ob)return oa-ob;
-    if(a.followupStatus==='未着手')return daysSince(b.date)-daysSince(a.date);
-    if(a.followupStatus==='連絡済み')return new Date(a.contactedDate||a.date)-new Date(b.contactedDate||b.date);
-    if(a.followupStatus==='日程確定')return new Date(a.meetingDate||'9999-12-31')-new Date(b.meetingDate||'9999-12-31');
-    return new Date(b.meetingDate||b.date)-new Date(a.meetingDate||a.date);
+    let diff=0;
+    if(a.followupStatus==='未着手')diff=daysSince(b.date)-daysSince(a.date);
+    else if(a.followupStatus==='連絡済み')diff=new Date(a.contactedDate||a.date)-new Date(b.contactedDate||b.date);
+    else if(a.followupStatus==='日程確定')diff=new Date(a.meetingDate||'9999-12-31')-new Date(b.meetingDate||'9999-12-31');
+    else diff=new Date(b.meetingDate||b.date)-new Date(a.meetingDate||a.date);
+    return diff!==0?diff:(a.id<b.id?1:a.id>b.id?-1:0);
   });
 }
 
@@ -991,6 +1009,10 @@ function renderFollowup(){
 
   const board=TEAM.map(t=>({team:t,leads:sortByFollowupPriority(leads.filter(l=>l.team===t))}));
 
+  const signature=board.map(col=>col.team+':'+col.leads.map(l=>[l.id,l.name,l.company,l.priority,l.followupStatus,l.contactMethod,l.meetingDate,!!l.photo].join('~')).join(',')).join('|');
+  if(el.dataset.signature===signature)return;
+  el.dataset.signature=signature;
+  const scrollY=window.scrollY;
   el.innerHTML=`
     ${renderOverdueAlertHtml(leads)}
     <div class="kpi-row">
@@ -1018,6 +1040,7 @@ function renderFollowup(){
       `).join('')}
     </div>
   `;
+  window.scrollTo(0,scrollY);
 }
 
 function showModal(lead,mode='view'){
@@ -1236,7 +1259,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='21';
+const APP_VERSION='22';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
