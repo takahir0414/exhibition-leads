@@ -115,6 +115,15 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 /* ===== KPI ===== */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
 .kpi-card{background:var(--surface);border-radius:var(--r-lg);padding:20px 24px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light)}
+.kpi-card-clickable{cursor:pointer;transition:transform .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.kpi-card-clickable:hover{transform:translateY(-2px);box-shadow:var(--shadow-md,0 4px 12px rgba(0,0,0,.08))}
+.stage-list-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r);cursor:pointer;border:1px solid var(--border-light);margin-bottom:8px}
+.stage-list-row:hover{background:var(--bg-2,rgba(0,0,0,.03))}
+.stage-list-photo{width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg-2,#f0f0f0);display:flex;align-items:center;justify-content:center;color:var(--text-3)}
+.stage-list-photo img{width:100%;height:100%;object-fit:cover}
+.stage-list-info{flex:1;min-width:0}
+.stage-list-name{font-weight:600;font-size:14px}
+.stage-list-company{font-size:12px;color:var(--text-3)}
 .kpi-label{font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 .kpi-value{font-size:36px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1}
 .kpi-target{font-size:18px;font-weight:600;color:var(--text-3)}
@@ -250,7 +259,8 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 .alert-item-team{font-size:11px;color:var(--text-3);flex-shrink:0}
 .alert-item-days{font-size:11px;font-weight:800;color:var(--pa);flex-shrink:0;white-space:nowrap}
 .lead-card-notes{font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.lead-card-date{font-size:11px;color:var(--text-3);margin-top:8px;font-variant-numeric:tabular-nums}
+.lead-card-date{font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.lead-card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap}
 
 /* ===== MODAL ===== */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -889,7 +899,7 @@ function renderLeadsList(){
   // 中身が前回と変わっていなければ作り直さない。背景の自動更新の
   // たびに画像を含むカードを全部再生成すると、ちらつきやスクロール
   // 位置のずれ（「流れる」ように見える現象）につながるため。
-  const signature=filtered.map(l=>[l.id,l.name,l.company,l.position,l.priority,l.industry,l.team,l.notes,l.unansweredQ,l.date,!!l.photo].join('')).join('');
+  const signature=filtered.map(l=>[l.id,l.name,l.company,l.position,l.priority,l.industry,l.team,l.notes,l.unansweredQ,l.date,String(!!l.photo),l.followupStatus,l.contactMethod,l.meetingType,l.meetingDate].join(String.fromCharCode(1))).join(String.fromCharCode(2));
   if(container.dataset.signature===signature)return;
   container.dataset.signature=signature;
   const scrollY=window.scrollY;
@@ -904,7 +914,7 @@ function renderLeadsList(){
           <div class="lead-card-badges"><span class="badge badge-industry">${esc(l.industry)}</span><span class="badge badge-team">${esc(l.team)}</span></div>
           ${l.notes?`<div class="lead-card-notes">${esc(l.notes)}</div>`:''}
           ${l.unansweredQ?`<div class="lead-card-notes" style="color:var(--pb)">&#10067; ${esc(l.unansweredQ)}</div>`:''}
-          <div class="lead-card-date">${l.date}</div>
+          <div class="lead-card-footer"><div class="lead-card-date">${l.date}</div>${stageBadgeHtml(l)}</div>
         </div>`).join('')}</div>
     `:`<div class="empty-state">
         <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
@@ -1016,10 +1026,10 @@ function renderFollowup(){
   el.innerHTML=`
     ${renderOverdueAlertHtml(leads)}
     <div class="kpi-row">
-      <div class="kpi-card"><div class="kpi-label">未対応</div><div class="kpi-value" style="color:var(--pc)">${todo.length}</div><div class="kpi-sub">${overdue>0?`<span style="color:var(--pa);font-weight:700">うち要対応 ${overdue}件</span>`:'期限内'}</div></div>
-      <div class="kpi-card"><div class="kpi-label">日程調整中</div><div class="kpi-value" style="color:var(--info)">${contacted.length}</div><div class="kpi-sub">日程調整待ち</div></div>
-      <div class="kpi-card"><div class="kpi-label">日程確定</div><div class="kpi-value" style="color:var(--purple)">${scheduled.length}</div><div class="kpi-sub">面談予定</div></div>
-      <div class="kpi-card"><div class="kpi-label">完了</div><div class="kpi-value" style="color:var(--accent)">${done.length}</div><div class="kpi-sub">商談実施済み</div></div>
+      <div class="kpi-card kpi-card-clickable" data-action="viewStage" data-stage="未着手"><div class="kpi-label">未対応</div><div class="kpi-value" style="color:var(--pc)">${todo.length}</div><div class="kpi-sub">${overdue>0?`<span style="color:var(--pa);font-weight:700">うち要対応 ${overdue}件</span>`:'期限内'}</div></div>
+      <div class="kpi-card kpi-card-clickable" data-action="viewStage" data-stage="連絡済み"><div class="kpi-label">日程調整中</div><div class="kpi-value" style="color:var(--info)">${contacted.length}</div><div class="kpi-sub">日程調整待ち</div></div>
+      <div class="kpi-card kpi-card-clickable" data-action="viewStage" data-stage="日程確定"><div class="kpi-label">日程確定</div><div class="kpi-value" style="color:var(--purple)">${scheduled.length}</div><div class="kpi-sub">面談予定</div></div>
+      <div class="kpi-card kpi-card-clickable" data-action="viewStage" data-stage="完了"><div class="kpi-label">完了</div><div class="kpi-value" style="color:var(--accent)">${done.length}</div><div class="kpi-sub">商談実施済み</div></div>
     </div>
     <div class="followup-board">
       ${board.map(col=>`
@@ -1159,6 +1169,28 @@ function showModal(lead,mode='view'){
 
 function closeModal(){document.getElementById('modalOverlay').classList.remove('visible')}
 
+// 進捗管理のKPIカード（未対応/日程調整中/日程確定/完了）をタップすると
+// 該当するリードの一覧をモーダルで表示する
+function showStageListModal(stage){
+  const overlay=document.getElementById('modalOverlay');
+  const modal=document.getElementById('modal');
+  const matched=sortByFollowupPriority(state.leads.filter(l=>(l.followupStatus||'未着手')===stage));
+  modal.innerHTML=`
+    <div class="modal-header"><h2>${esc(stageLabel(stage))}（${matched.length}件）</h2><button class="modal-close" data-action="closeModal">&times;</button></div>
+    ${matched.length?matched.map(l=>`
+      <div class="stage-list-row" data-action="view" data-id="${l.id}">
+        <div class="stage-list-photo">${photoOrIcon(l)}</div>
+        <div class="stage-list-info">
+          <div class="stage-list-name">${esc(l.name||l.company||'氏名未入力')}</div>
+          <div class="stage-list-company">${esc(l.company)}${l.team?'・'+esc(l.team):''}</div>
+        </div>
+        ${stageBadgeCompact(l)}
+      </div>
+    `).join(''):'<div class="empty-state"><p>該当するリードはありません</p></div>'}
+  `;
+  requestAnimationFrame(()=>overlay.classList.add('visible'));
+}
+
 function exportCSV(){
   const headers=['氏名','会社名','部署','役職','メール','電話','住所','業種','担当者','重要度','備考','返答できなかった質問','進捗','連絡方法','連絡日','面談形式','面談日','登録日'];
   const rows=state.leads.map(l=>[l.name,l.company,l.department,l.position,l.email,l.phone,l.address,l.industry,l.team,l.priority,l.notes,l.unansweredQ||'',stageLabel(l.followupStatus||'未着手'),l.contactMethod||'',l.contactedDate||'',l.meetingType||'',l.meetingDate||'',l.date]);
@@ -1180,6 +1212,7 @@ document.addEventListener('click',e=>{
   const action=btn.dataset.action;
   const id=btn.dataset.id;
   if(action==='view'){const l=state.leads.find(x=>x.id===id);if(l)showModal(l)}
+  else if(action==='viewStage')showStageListModal(btn.dataset.stage);
   else if(action==='closeModal')closeModal();
   else if(action==='removePhoto'){state.regPhoto=null;state.regExtracted={company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''};state.regOcrStatus='idle';renderRegister()}
   else if(action==='clearForm'){state.regPhoto=null;state.regExtracted={company:'',name:'',department:'',position:'',phone:'',email:'',address:'',industry:''};state.regOcrStatus='idle';renderRegister()}
@@ -1259,7 +1292,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='22';
+const APP_VERSION='23';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
