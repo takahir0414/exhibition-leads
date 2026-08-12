@@ -108,7 +108,7 @@ textarea{resize:vertical;min-height:80px}
 .fab svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* ===== MAIN ===== */
-main{padding:24px;max-width:1200px;margin:0 auto}
+main{padding:24px;max-width:1600px;margin:0 auto}
 .section{display:none}
 .section.active{display:block}
 
@@ -1184,7 +1184,7 @@ function showStageListModal(stage){
           <div class="stage-list-name">${esc(l.name||l.company||'氏名未入力')}</div>
           <div class="stage-list-company">${esc(l.company)}${l.team?'・'+esc(l.team):''}</div>
         </div>
-        ${stageBadgeCompact(l)}
+        ${stageBadgeHtml(l)}
       </div>
     `).join(''):'<div class="empty-state"><p>該当するリードはありません</p></div>'}
   `;
@@ -1292,7 +1292,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='23';
+const APP_VERSION='24';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
