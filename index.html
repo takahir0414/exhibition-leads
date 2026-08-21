@@ -960,6 +960,7 @@ function followupActionHtml(l){
   if(l.followupStatus==='未着手')return `<button class="btn btn-primary btn-sm" data-action="openContactModal" data-id="${l.id}">連絡した</button>`;
   if(l.followupStatus==='連絡済み')return `<button class="btn btn-primary btn-sm" data-action="openMeetingModal" data-id="${l.id}">日程を確定</button><button class="btn btn-outline btn-sm" data-action="markNoReply" data-id="${l.id}">メール返信なし</button>`;
   if(l.followupStatus==='日程確定')return `<button class="btn btn-primary btn-sm" data-action="markDone" data-id="${l.id}">完了にする</button>`;
+  if(l.followupStatus==='返信なし')return `<button class="btn btn-primary btn-sm" data-action="openMeetingModal" data-id="${l.id}">日程を確定</button><button class="btn btn-outline btn-sm" data-action="backToContacted" data-id="${l.id}">日程調整中に戻す</button>`;
   return '';
 }
 
@@ -1239,6 +1240,10 @@ document.addEventListener('click',e=>{
     const l=state.leads.find(x=>x.id===id);
     if(l){l.followupStatus='返信なし';save();syncLeadToServer(l);closeModal();render();toast('メール返信なしにしました')}
   }
+  else if(action==='backToContacted'){
+    const l=state.leads.find(x=>x.id===id);
+    if(l){l.followupStatus='連絡済み';save();syncLeadToServer(l);closeModal();render();toast('日程調整中に戻しました')}
+  }
 });
 
 // Tab switching (top nav + bottom nav)
@@ -1269,7 +1274,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='26';
+const APP_VERSION='27';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
