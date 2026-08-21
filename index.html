@@ -113,7 +113,7 @@ main{padding:24px;max-width:1600px;margin:0 auto}
 .section.active{display:block}
 
 /* ===== KPI ===== */
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
 .kpi-card{background:var(--surface);border-radius:var(--r-lg);padding:20px 24px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light)}
 .kpi-card-clickable{cursor:pointer;transition:transform .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
 .kpi-card-clickable:hover{transform:translateY(-2px);box-shadow:var(--shadow-md,0 4px 12px rgba(0,0,0,.08))}
@@ -233,6 +233,7 @@ main{padding:24px;max-width:1600px;margin:0 auto}
 .badge-stage-scheduled{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
 .badge-stage-done{background:var(--accent-soft);color:var(--accent);border:1px solid var(--border-light)}
 .badge-overdue{background:var(--pa-bg);color:var(--pa);border:1px solid var(--pa-border);font-weight:800}
+.badge-no-reply{background:var(--surface-alt);color:var(--text-3);border:1px solid var(--border-light)}
 .followup-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
 .followup-column{flex:0 0 280px;scroll-snap-align:start;background:var(--surface);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);display:flex;flex-direction:column;max-height:70vh;overflow-y:auto}
 @media(max-width:600px){.followup-column{flex:0 0 85vw}}
@@ -945,23 +946,25 @@ function stageBadgeHtml(l){
   if(l.followupStatus==='連絡済み')return `<span class="badge badge-stage-contacted">${stageLabel(l.followupStatus)}${l.contactMethod?'・'+esc(l.contactMethod):''}</span>`;
   if(l.followupStatus==='日程確定')return `<span class="badge badge-stage-scheduled">${esc(l.meetingType||'')} ${esc(l.meetingDate||'')}</span>`;
   if(l.followupStatus==='完了')return `<span class="badge badge-stage-done">完了${l.meetingType?'・'+esc(l.meetingType):''}</span>`;
+  if(l.followupStatus==='返信なし')return `<span class="badge badge-no-reply">メール返信なし</span>`;
   return days>5?`<span class="badge badge-overdue">要対応（${days}日経過）</span>`:`<span class="badge badge-stage-todo">${stageLabel(l.followupStatus)}（${days}日経過）</span>`;
 }
 function stageBadgeCompact(l){
   if(l.followupStatus==='連絡済み')return `<span class="badge badge-stage-contacted">${stageLabel(l.followupStatus)}</span>`;
   if(l.followupStatus==='日程確定')return `<span class="badge badge-stage-scheduled">${esc(l.meetingType||'確定')}</span>`;
   if(l.followupStatus==='完了')return `<span class="badge badge-stage-done">完了</span>`;
+  if(l.followupStatus==='返信なし')return `<span class="badge badge-no-reply">返信なし</span>`;
   return daysSince(l.date)>5?`<span class="badge badge-overdue">要対応</span>`:`<span class="badge badge-stage-todo">${stageLabel(l.followupStatus)}</span>`;
 }
 function followupActionHtml(l){
   if(l.followupStatus==='未着手')return `<button class="btn btn-primary btn-sm" data-action="openContactModal" data-id="${l.id}">連絡した</button>`;
-  if(l.followupStatus==='連絡済み')return `<button class="btn btn-primary btn-sm" data-action="openMeetingModal" data-id="${l.id}">日程を確定</button>`;
+  if(l.followupStatus==='連絡済み')return `<button class="btn btn-primary btn-sm" data-action="openMeetingModal" data-id="${l.id}">日程を確定</button><button class="btn btn-outline btn-sm" data-action="markNoReply" data-id="${l.id}">メール返信なし</button>`;
   if(l.followupStatus==='日程確定')return `<button class="btn btn-primary btn-sm" data-action="markDone" data-id="${l.id}">完了にする</button>`;
   return '';
 }
 
 function sortByFollowupPriority(arr){
-  const order={'未着手':0,'連絡済み':1,'日程確定':2,'完了':3};
+  const order={'未着手':0,'連絡済み':1,'返信なし':2,'日程確定':3,'完了':4};
   // 同順位（同じ日付など）になった場合はIDで決定的にタイブレークする。
   // これがないと、同一条件のリードの並びが取得のたびに入れ替わり、
   // 一覧が「流れる」ように見えてしまう。
@@ -970,7 +973,7 @@ function sortByFollowupPriority(arr){
     if(oa!==ob)return oa-ob;
     let diff=0;
     if(a.followupStatus==='未着手')diff=daysSince(b.date)-daysSince(a.date);
-    else if(a.followupStatus==='連絡済み')diff=new Date(a.contactedDate||a.date)-new Date(b.contactedDate||b.date);
+    else if(a.followupStatus==='連絡済み'||a.followupStatus==='返信なし')diff=new Date(a.contactedDate||a.date)-new Date(b.contactedDate||b.date);
     else if(a.followupStatus==='日程確定')diff=new Date(a.meetingDate||'9999-12-31')-new Date(b.meetingDate||'9999-12-31');
     else diff=new Date(b.meetingDate||b.date)-new Date(a.meetingDate||a.date);
     return diff!==0?diff:(a.id<b.id?1:a.id>b.id?-1:0);
@@ -984,6 +987,7 @@ function renderFollowup(){
   const contacted=leads.filter(l=>l.followupStatus==='連絡済み');
   const scheduled=leads.filter(l=>l.followupStatus==='日程確定');
   const done=leads.filter(l=>l.followupStatus==='完了');
+  const noReply=leads.filter(l=>l.followupStatus==='返信なし');
   const overdue=todo.filter(l=>daysSince(l.date)>5).length;
 
   const board=TEAM.map(t=>({team:t,leads:sortByFollowupPriority(leads.filter(l=>l.team===t))}));
@@ -998,6 +1002,7 @@ function renderFollowup(){
       <div class="kpi-card kpi-card-clickable" data-action="viewStage" data-stage="連絡済み"><div class="kpi-label">日程調整中</div><div class="kpi-value" style="color:var(--info)">${contacted.length}</div><div class="kpi-sub">日程調整待ち</div></div>
       <div class="kpi-card kpi-card-clickable" data-action="viewStage" data-stage="日程確定"><div class="kpi-label">日程確定</div><div class="kpi-value" style="color:var(--purple)">${scheduled.length}</div><div class="kpi-sub">面談予定</div></div>
       <div class="kpi-card kpi-card-clickable" data-action="viewStage" data-stage="完了"><div class="kpi-label">完了</div><div class="kpi-value" style="color:var(--accent)">${done.length}</div><div class="kpi-sub">商談実施済み</div></div>
+      <div class="kpi-card kpi-card-clickable" data-action="viewStage" data-stage="返信なし"><div class="kpi-label">メール返信なし</div><div class="kpi-value" style="color:var(--text-3)">${noReply.length}</div><div class="kpi-sub">応答待ち終了</div></div>
     </div>
     <div class="followup-board">
       ${board.map(col=>`
@@ -1230,6 +1235,10 @@ document.addEventListener('click',e=>{
     const l=state.leads.find(x=>x.id===id);
     if(l){l.followupStatus='完了';l.followed=true;save();syncLeadToServer(l);closeModal();render();toast('完了にしました')}
   }
+  else if(action==='markNoReply'){
+    const l=state.leads.find(x=>x.id===id);
+    if(l){l.followupStatus='返信なし';save();syncLeadToServer(l);closeModal();render();toast('メール返信なしにしました')}
+  }
 });
 
 // Tab switching (top nav + bottom nav)
@@ -1260,7 +1269,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='25';
+const APP_VERSION='26';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
