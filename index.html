@@ -1126,13 +1126,22 @@ function showModal(lead,mode='view'){
         <div class="form-group full"><label class="form-label">備考</label><textarea id="editNotes">${esc(lead.notes||'')}</textarea></div>
         <div class="form-group full"><label class="form-label">返答できなかった質問</label><textarea id="editUnansweredQ" style="min-height:60px">${esc(lead.unansweredQ||'')}</textarea></div>
         <div class="form-group full"><label class="form-label">次のアクション</label><input id="editAction" value="${esc(lead.nextAction||'')}"></div>
+        ${(lead.followupStatus==='日程確定'||lead.followupStatus==='完了'||lead.meetingDate)?`
+          <div class="form-group full"><label class="form-label">面談形式</label>
+            <div class="team-select">
+              <label class="team-option${lead.meetingType==='ZOOM'?' selected':''}"><input type="radio" name="editMeetingType" value="ZOOM"${lead.meetingType==='ZOOM'?' checked':''}>ZOOM</label>
+              <label class="team-option${lead.meetingType==='対面'?' selected':''}"><input type="radio" name="editMeetingType" value="対面"${lead.meetingType==='対面'?' checked':''}>対面</label>
+            </div>
+          </div>
+          <div class="form-group full"><label class="form-label">面談日</label><input type="date" id="editMeetingDate" value="${esc(lead.meetingDate||'')}"></div>
+        `:''}
       </div>
       <div class="form-actions" style="margin-top:20px;display:flex">
         <button class="btn btn-outline" data-action="closeModal">キャンセル</button>
         <button class="btn btn-primary" data-action="saveEdit" data-id="${lead.id}">保存</button>
       </div>`;
     modal.querySelectorAll('.team-option').forEach(el=>{
-      el.addEventListener('click',()=>{modal.querySelectorAll('.team-option').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');el.querySelector('input').checked=true});
+      el.addEventListener('click',()=>{el.closest('.team-select').querySelectorAll('.team-option').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');el.querySelector('input').checked=true});
     });
     modal.querySelectorAll('.prio-option').forEach(el=>{
       el.addEventListener('click',()=>{modal.querySelectorAll('.prio-option').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');el.querySelector('input').checked=true});
@@ -1211,6 +1220,8 @@ document.addEventListener('click',e=>{
       l.notes=document.getElementById('editNotes')?.value.trim()||'';
       l.unansweredQ=document.getElementById('editUnansweredQ')?.value.trim()||'';
       l.nextAction=document.getElementById('editAction')?.value.trim()||'';
+      const mt=document.querySelector('#modal input[name="editMeetingType"]:checked');if(mt)l.meetingType=mt.value;
+      const md=document.getElementById('editMeetingDate');if(md&&md.value)l.meetingDate=md.value;
       save();syncLeadToServer(l);closeModal();render();toast('更新しました');
     }
   }
@@ -1274,7 +1285,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='27';
+const APP_VERSION='28';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
