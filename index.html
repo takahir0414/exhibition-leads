@@ -228,6 +228,8 @@ main{padding:24px;max-width:1600px;margin:0 auto}
 .badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
 .badge-industry{background:var(--accent-soft);color:var(--accent)}
 .badge-team{background:var(--surface-alt);color:var(--text-2);border:1px solid var(--border-light)}
+.fc-toggle-btn{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:var(--surface);color:var(--text-3);border:1px solid var(--border-light);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.fc-toggle-btn.active{background:var(--purple-bg,#efe6fb);color:var(--purple,#7c3aed);border-color:var(--purple-border,#c9b3f2)}
 .badge-stage-todo{background:var(--pc-bg);color:var(--pc);border:1px solid var(--pc-border)}
 .badge-stage-contacted{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
 .badge-stage-scheduled{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
@@ -355,6 +357,7 @@ main{padding:24px;max-width:1600px;margin:0 auto}
     <button class="tab-btn-top" data-tab="register">名刺登録</button>
     <button class="tab-btn-top" data-tab="leads">リード一覧</button>
     <button class="tab-btn-top" data-tab="followup">進捗管理</button>
+    <button class="tab-btn-top" data-tab="fc">FC</button>
   </nav>
 
   <main>
@@ -362,6 +365,7 @@ main{padding:24px;max-width:1600px;margin:0 auto}
     <section id="sec-register" class="section"></section>
     <section id="sec-leads" class="section"></section>
     <section id="sec-followup" class="section"></section>
+    <section id="sec-fc" class="section"></section>
   </main>
 
   <!-- Desktop FAB -->
@@ -389,6 +393,10 @@ main{padding:24px;max-width:1600px;margin:0 auto}
       <button class="bnav-btn" data-tab="followup">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
         <span>進捗</span>
+      </button>
+      <button class="bnav-btn" data-tab="fc">
+        <svg viewBox="0 0 24 24"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11L12 2z"/></svg>
+        <span>FC</span>
       </button>
     </div>
   </nav>
@@ -566,6 +574,7 @@ function migrateFields(l){
   return {
     id:uid(),address:'',nextAction:'',followed:false,photo:null,unansweredQ:'',
     followupStatus:'未着手',contactMethod:'',contactedDate:'',meetingType:'',meetingDate:'',
+    fc:false,
     ...l
   };
 }
@@ -690,6 +699,7 @@ function render(){
   else if(state.tab==='register')renderRegister();
   else if(state.tab==='leads')renderLeads();
   else if(state.tab==='followup')renderFollowup();
+  else if(state.tab==='fc')renderFC();
 }
 
 function renderDash(){
@@ -890,7 +900,7 @@ function renderLeadsList(){
   // 中身が前回と変わっていなければ作り直さない。背景の自動更新の
   // たびに画像を含むカードを全部再生成すると、ちらつきやスクロール
   // 位置のずれ（「流れる」ように見える現象）につながるため。
-  const signature=filtered.map(l=>[l.id,l.name,l.company,l.position,l.priority,l.industry,l.team,l.notes,l.unansweredQ,l.date,String(!!l.photo),l.followupStatus,l.contactMethod,l.meetingType,l.meetingDate].join(String.fromCharCode(1))).join(String.fromCharCode(2));
+  const signature=filtered.map(l=>[l.id,l.name,l.company,l.position,l.priority,l.industry,l.team,l.notes,l.unansweredQ,l.date,String(!!l.photo),l.followupStatus,l.contactMethod,l.meetingType,l.meetingDate,String(!!l.fc)].join(String.fromCharCode(1))).join(String.fromCharCode(2));
   if(container.dataset.signature===signature)return;
   container.dataset.signature=signature;
   const scrollY=window.scrollY;
@@ -902,7 +912,7 @@ function renderLeadsList(){
             <div><div class="lead-card-name">${esc(l.name)}</div><div class="lead-card-company">${esc(l.company)}${l.position?' / '+esc(l.position):''}</div></div>
             <div class="priority-badge --${(l.priority||'c').toLowerCase()}" style="margin-left:auto">${l.priority||'-'}</div>
           </div>
-          <div class="lead-card-badges"><span class="badge badge-industry">${esc(l.industry)}</span><span class="badge badge-team">${esc(l.team)}</span></div>
+          <div class="lead-card-badges"><span class="badge badge-industry">${esc(l.industry)}</span><span class="badge badge-team">${esc(l.team)}</span><button class="fc-toggle-btn${l.fc?' active':''}" data-action="toggleFC" data-id="${l.id}">FC${l.fc?' ✓':''}</button></div>
           ${l.notes?`<div class="lead-card-notes">${esc(l.notes)}</div>`:''}
           ${l.unansweredQ?`<div class="lead-card-notes" style="color:var(--pb)">&#10067; ${esc(l.unansweredQ)}</div>`:''}
           <div class="lead-card-footer"><div class="lead-card-date">${l.date}</div>${stageBadgeHtml(l)}</div>
@@ -936,6 +946,33 @@ function renderLeads(){
     });
   }
   renderLeadsList();
+}
+
+// FCタブ：リード一覧で「FC」ボタンを押して印をつけたリードだけを表示する
+function renderFC(){
+  const el=document.getElementById('sec-fc');
+  const fcLeads=sortLeadsStable(state.leads.filter(l=>l.fc));
+  const signature=fcLeads.map(l=>[l.id,l.name,l.company,l.position,l.priority,l.industry,l.team,l.notes,String(!!l.photo),l.followupStatus].join(String.fromCharCode(1))).join(String.fromCharCode(2));
+  if(el.dataset.signature===signature)return;
+  el.dataset.signature=signature;
+  const scrollY=window.scrollY;
+  el.innerHTML=fcLeads.length?`
+      <div class="lead-grid">${fcLeads.map(l=>`
+        <div class="lead-card" data-action="view" data-id="${l.id}">
+          <div class="lead-card-top">
+            <div class="lead-card-photo">${photoOrIcon(l)}</div>
+            <div><div class="lead-card-name">${esc(l.name)}</div><div class="lead-card-company">${esc(l.company)}${l.position?' / '+esc(l.position):''}</div></div>
+            <div class="priority-badge --${(l.priority||'c').toLowerCase()}" style="margin-left:auto">${l.priority||'-'}</div>
+          </div>
+          <div class="lead-card-badges"><span class="badge badge-industry">${esc(l.industry)}</span><span class="badge badge-team">${esc(l.team)}</span><button class="fc-toggle-btn active" data-action="toggleFC" data-id="${l.id}">FC ✓</button></div>
+          ${l.notes?`<div class="lead-card-notes">${esc(l.notes)}</div>`:''}
+          <div class="lead-card-footer"><div class="lead-card-date">${l.date}</div>${stageBadgeHtml(l)}</div>
+        </div>`).join('')}</div>
+    `:`<div class="empty-state">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <p>FCに登録されたリードはありません</p><small>リード一覧の「FC」ボタンから追加できます</small>
+      </div>`;
+  window.scrollTo(0,scrollY);
 }
 
 function stageLabel(status){
@@ -1255,6 +1292,20 @@ document.addEventListener('click',e=>{
     const l=state.leads.find(x=>x.id===id);
     if(l){l.followupStatus='連絡済み';save();syncLeadToServer(l);closeModal();render();toast('日程調整中に戻しました')}
   }
+  else if(action==='toggleFC'){
+    const l=state.leads.find(x=>x.id===id);
+    if(l){
+      l.fc=!l.fc;
+      save();syncLeadToServer(l);
+      if(state.tab==='fc'){
+        render();
+      }else{
+        btn.classList.toggle('active',l.fc);
+        btn.textContent='FC'+(l.fc?' ✓':'');
+      }
+      toast(l.fc?'FCに追加しました':'FCから外しました');
+    }
+  }
 });
 
 // Tab switching (top nav + bottom nav)
@@ -1285,7 +1336,7 @@ function updateThemeIcon(){
 window.addEventListener('resize',updateStickySubmit);
 
 // バージョンが古いキャッシュを開いた場合に一度だけ強制リロードする
-const APP_VERSION='28';
+const APP_VERSION='29';
 if(localStorage.getItem('exh-app-version')!==APP_VERSION){
   localStorage.setItem('exh-app-version',APP_VERSION);
   if(!location.search.includes('v='))location.replace(location.pathname+'?v='+APP_VERSION);
